@@ -118,16 +118,27 @@ public class TwitchApiService : ITwitchApiService
             throw new UriFormatException($"Invalid API route URL: {apiFullRoute}");
         }
 
-        var result = await AsyncHttpClient
-            .StartGet(apiFullRoute)
-            .AddHeader("Authorization", $"Bearer {AccessToken}")
-            .AddHeader("Client-Id", ClientId)
-            .SetQueryString(query)
-            .RequireStatusCode(200)
-            .Build()
-            .SendAsync<TResponse>(token);
+        switch (routeAttribute.HttpMethod)
+        {
+            case "GET":
+            {
+                var result = await AsyncHttpClient
+                    .StartGet(apiFullRoute)
+                    .AddHeader("Authorization", $"Bearer {AccessToken}")
+                    .AddHeader("Client-Id", ClientId)
+                    .SetQueryString(query)
+                    .RequireStatusCode(200)
+                    .Build()
+                    .SendAsync<TResponse>(token);
         
-        return result.Body;
+                return result.Body;
+            }
+
+            default:
+            {
+                throw new NotImplementedException($"HTTP Method {routeAttribute.HttpMethod} is not implemented.");
+            }
+        }
     }
     
     [ApiRoute("GET", "chat/chatters", "moderator:read:chatters")]
