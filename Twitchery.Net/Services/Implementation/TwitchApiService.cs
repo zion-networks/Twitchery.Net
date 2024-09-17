@@ -1,12 +1,9 @@
-using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TwitcheryNet.Attributes;
 using TwitcheryNet.Exceptions;
-using TwitcheryNet.Extensions;
 using TwitcheryNet.Http;
 using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Helix;
@@ -88,8 +85,8 @@ public class TwitchApiService : ITwitchApiService
         return true;
     }
 
-    private async Task<TResponse?> CallTwitchApi<TQuery, TResponse>(TQuery query, CancellationToken token = default, [CallerMemberName] string? callerMethodName = null)
-        where TQuery : class,IQueryParameters
+    private async Task<TResponse?> GetTwitchApiAsync<TQuery, TResponse>(TQuery query, CancellationToken token = default, [CallerMemberName] string? callerMethodName = null)
+        where TQuery : class, IQueryParameters
         where TResponse : class
     {
         ArgumentException.ThrowIfNullOrEmpty(callerMethodName, nameof(callerMethodName));
@@ -150,7 +147,7 @@ public class TwitchApiService : ITwitchApiService
             After = after
         };
         
-        return await CallTwitchApi<GetChattersRequest, GetChattersResponse>(request, cancellationToken);
+        return await GetTwitchApiAsync<GetChattersRequest, GetChattersResponse>(request, cancellationToken);
     }
     
     [ApiRoute("GET", "channels/followers", "moderator:read:followers")]
@@ -163,7 +160,7 @@ public class TwitchApiService : ITwitchApiService
             After = after
         };
         
-        return await CallTwitchApi<GetChannelFollowersRequest, GetChannelFollowersResponse>(request, cancellationToken);
+        return await GetTwitchApiAsync<GetChannelFollowersRequest, GetChannelFollowersResponse>(request, cancellationToken);
     }
     
     [ApiRoute("GET", "streams")]
@@ -190,6 +187,6 @@ public class TwitchApiService : ITwitchApiService
             After = after
         };
         
-        return await CallTwitchApi<GetStreamsRequest, GetStreamsResponse>(request, cancellationToken);
+        return await GetTwitchApiAsync<GetStreamsRequest, GetStreamsResponse>(request, cancellationToken);
     }
 }

@@ -1,4 +1,3 @@
-using System.Reflection;
 using TwitcheryNet.Attributes;
 
 namespace TwitcheryNet.Models.Helix.Chat;
