@@ -112,4 +112,42 @@ public class Tests
             }
         });
     }
+    
+    [Test, Order(4)]
+    public void TestGetStreams()
+    {
+        Assert.That(_twitchApiService, Is.Not.Null);
+        Assert.That(_twitchApiService.AccessToken, Is.Not.Empty);
+        
+        Assert.DoesNotThrowAsync(async () =>
+        {
+            var streams = await _twitchApiService.GetStreamsAsync(userLogins: [ "GronkhTV" ]);
+            
+            Assert.That(streams, Is.Not.Null);
+            
+            foreach (var stream in streams.Streams)
+            {
+                await TestContext.Out.WriteLineAsync($"Stream: {stream.UserName} started at {stream.StartedAt} and has {stream.ViewerCount} viewers right now");
+                
+                Assert.Multiple(() =>
+                {
+                    Assert.That(stream, Is.Not.Null);
+                    Assert.That(stream.Id, Is.Not.Empty);
+                    Assert.That(stream.UserId, Is.Not.Empty);
+                    Assert.That(stream.UserLogin, Is.Not.Empty);
+                    Assert.That(stream.UserName, Is.Not.Empty);
+                    Assert.That(stream.ViewerCount, Is.Positive.Or.Zero);
+                    Assert.That(stream.StartedAt, Is.Not.EqualTo(default(DateTime)));
+                    Assert.That(stream.Language, Is.Not.Empty);
+                    Assert.That(stream.ThumbnailUrl, Is.Not.Empty);
+                    Assert.That(stream.Tags, Is.Not.Count.Negative);
+                    Assert.That(stream.TagIds, Is.Not.Count.Negative);
+                    Assert.That(stream.GameId, Is.Not.Empty);
+                    Assert.That(stream.GameName, Is.Not.Empty);
+                    Assert.That(stream.Type, Is.Not.Empty);
+                    Assert.That(stream.Title, Is.Not.Empty);
+                });
+            }
+        });
+    }
 }

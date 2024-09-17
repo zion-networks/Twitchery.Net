@@ -1,12 +1,18 @@
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TwitcheryNet.Attributes;
 using TwitcheryNet.Exceptions;
+using TwitcheryNet.Extensions;
 using TwitcheryNet.Http;
 using TwitcheryNet.Misc;
+using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Channels;
 using TwitcheryNet.Models.Helix.Chat;
+using TwitcheryNet.Models.Helix.Streams;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Services.Implementation;
@@ -82,49 +88,97 @@ public class TwitchApiService : ITwitchApiService
         return true;
     }
 
+    private async Task<TResponse?> CallTwitchApi<TQuery, TResponse>(TQuery query, CancellationToken token = default, [CallerMemberName] string? callerMethodName = null)
+        where TQuery : class,IQueryParameters
+        where TResponse : class
+    {
+        ArgumentException.ThrowIfNullOrEmpty(callerMethodName, nameof(callerMethodName));
+        ArgumentNullException.ThrowIfNull(query);
+        
+        if (string.IsNullOrWhiteSpace(ClientId))
+        {
+            throw new ApiException("Client ID is required.");
+        }
+        
+        if (string.IsNullOrWhiteSpace(AccessToken))
+        {
+            throw new ApiException("Access Token is required.");
+        }
+
+        var method = GetType().GetMethod(callerMethodName) ?? throw new MissingMethodException(GetType().FullName, callerMethodName);
+        var routeAttribute = method.GetCustomAttribute<ApiRoute>() ?? throw new Exception("No ApiRoute Attribute");
+        var requiredScopes = routeAttribute.RequiredScopes;
+        
+        MissingTwitchScopeException.ThrowIfMissing(Scopes, requiredScopes);
+        
+        var apiFullRoute = $"{TwitchApiEndpoint}{routeAttribute.Route}";
+        
+        if (Uri.IsWellFormedUriString(apiFullRoute, UriKind.Absolute) == false)
+        {
+            throw new UriFormatException($"Invalid API route URL: {apiFullRoute}");
+        }
+
+        var result = await AsyncHttpClient
+            .StartGet(apiFullRoute)
+            .AddHeader("Authorization", $"Bearer {AccessToken}")
+            .AddHeader("Client-Id", ClientId)
+            .SetQueryString(query)
+            .RequireStatusCode(200)
+            .Build()
+            .SendAsync<TResponse>(token);
+        
+        return result.Body;
+    }
+    
     [ApiRoute("GET", "chat/chatters", "moderator:read:chatters")]
     public async Task<GetChattersResponse?> GetChattersAsync(string broadcasterId, string moderatorId, int? first = null, string? after = null, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(ClientId, nameof(ClientId));
-        ArgumentException.ThrowIfNullOrWhiteSpace(AccessToken, nameof(AccessToken));
-        MissingTwitchScopeException.ThrowIfMissing(Scopes, "moderator:read:chatters");
+        var request = new GetChattersRequest(broadcasterId, moderatorId)
+        {
+            First = first,
+            After = after
+        };
         
-        var result = await AsyncHttpClient
-            .StartGet(TwitchApiEndpoint)
-            .SetPath("chat/chatters")
-            .AddQueryParameter("broadcaster_id", broadcasterId)
-            .AddQueryParameter("moderator_id", moderatorId)
-            .AddQueryParameterOptional("first", first?.ToString())
-            .AddQueryParameterOptional("after", after)
-            .AddHeader("Authorization", $"Bearer {AccessToken}")
-            .AddHeader("Client-Id", ClientId)
-            .RequireStatusCode(200)
-            .Build()
-            .SendAsync<GetChattersResponse>(cancellationToken);
-
-        return result;
+        return await CallTwitchApi<GetChattersRequest, GetChattersResponse>(request, cancellationToken);
     }
     
     [ApiRoute("GET", "channels/followers", "moderator:read:followers")]
     public async Task<GetChannelFollowersResponse?> GetChannelFollowersAsync(string broadcasterId, string? userId = null, int? first = null, string? after = null, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(ClientId, nameof(ClientId));
-        ArgumentException.ThrowIfNullOrWhiteSpace(AccessToken, nameof(AccessToken));
-        MissingTwitchScopeException.ThrowIfMissing(Scopes, "moderator:read:followers");
+        var request = new GetChannelFollowersRequest(broadcasterId)
+        {
+            UserId = userId,
+            First = first,
+            After = after
+        };
         
-        var result = await AsyncHttpClient
-            .StartGet(TwitchApiEndpoint)
-            .SetPath("channels/followers")
-            .AddQueryParameter("broadcaster_id", broadcasterId)
-            .AddQueryParameterOptional("user_id", userId)
-            .AddQueryParameterOptional("first", first?.ToString())
-            .AddQueryParameterOptional("after", after)
-            .AddHeader("Authorization", $"Bearer {AccessToken}")
-            .AddHeader("Client-Id", ClientId)
-            .RequireStatusCode(200)
-            .Build()
-            .SendAsync<GetChannelFollowersResponse>(cancellationToken);
-
-        return result;
+        return await CallTwitchApi<GetChannelFollowersRequest, GetChannelFollowersResponse>(request, cancellationToken);
+    }
+    
+    [ApiRoute("GET", "streams")]
+    public async Task<GetStreamsResponse?> GetStreamsAsync(
+        List<string>? userIds = null,
+        List<string>? userLogins = null,
+        List<string>? gameIds = null,
+        string? type = null,
+        List<string>? languages = null,
+        int? first = null,
+        string? before = null,
+        string? after = null,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new GetStreamsRequest
+        {
+            UserId = userIds,
+            UserLogin = userLogins,
+            GameId = gameIds,
+            Type = type,
+            Language = languages,
+            First = first,
+            Before = before,
+            After = after
+        };
+        
+        return await CallTwitchApi<GetStreamsRequest, GetStreamsResponse>(request, cancellationToken);
     }
 }

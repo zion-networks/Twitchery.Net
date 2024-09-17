@@ -2,6 +2,8 @@ using System.Net;
 using System.Text;
 using System.Web;
 using Newtonsoft.Json;
+using TwitcheryNet.Extensions;
+using TwitcheryNet.Models.Helix;
 
 namespace TwitcheryNet.Http;
 
@@ -67,6 +69,16 @@ public class HttpRequestBuilder
         return this;
     }
     
+    public HttpRequestBuilder SetQueryString<TQuery>(TQuery query) where TQuery : class, IQueryParameters
+    {
+        Uri = new UriBuilder(Uri)
+        {
+            Query = query.ToQueryString()
+        }.Uri;
+        
+        return this;
+    }
+    
     public HttpRequestBuilder SetBody(string body)
     {
         Body = body;
@@ -87,9 +99,14 @@ public class HttpRequestBuilder
             request.Headers.Add(key, value);
         
         var query = HttpUtility.ParseQueryString(Uri.Query);
-        
+
         foreach (var (key, value) in QueryParameters)
-            query[key] = value;
+        {
+            var urlKey = HttpUtility.UrlEncode(key);
+            var urlValue = HttpUtility.UrlEncode(value);
+            
+            query[urlKey] = urlValue;
+        }
         
         Uri = new UriBuilder(Uri)
         {
@@ -106,7 +123,7 @@ public class HttpRequestBuilder
         return this;
     }
     
-    public async Task<string?> SendAsync(CancellationToken cancellationToken = default)
+    public async Task<AsyncHttpResponse> SendAsync(CancellationToken cancellationToken = default)
     {
         if (Request is null)
             throw new InvalidOperationException("Request is not built.");
@@ -114,26 +131,20 @@ public class HttpRequestBuilder
         switch (Method.Method)
         {
             case "GET":
-                var result = await AsyncHttpClient.GetAsync(this, cancellationToken);
-                
-                if (result is null)
-                    return null;
-                
-                if (RequiredStatusCode is not null && result.Value.Item1 != RequiredStatusCode)
-                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {result.Value.Item1}.");
+                var getResult = await AsyncHttpClient.GetAsync(this, cancellationToken);
 
-                return result.Value.Item2;
+                if (RequiredStatusCode is not null && getResult.Response.StatusCode != RequiredStatusCode)
+                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {getResult.Response.StatusCode} with the following body: {getResult.RawBody}");
+
+                return getResult;
             
             case "POST":
                 var postResult = await AsyncHttpClient.PostAsync(this, cancellationToken);
                 
-                if (postResult is null)
-                    return null;
+                if (RequiredStatusCode is not null && postResult.Response.StatusCode != RequiredStatusCode)
+                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {postResult.Response.StatusCode} with the following body: {postResult.RawBody}");
                 
-                if (RequiredStatusCode is not null && postResult.Value.Item1 != RequiredStatusCode)
-                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {postResult.Value.Item1}.");
-
-                return postResult.Value.Item2;
+                return postResult;
             
             //case HttpMethod.Put:
             //    return await SendPutAsync(cancellationToken);
@@ -146,7 +157,7 @@ public class HttpRequestBuilder
         }
     }
     
-    public async Task<T?> SendAsync<T>(CancellationToken cancellationToken = default)
+    public async Task<AsyncHttpResponse<T>> SendAsync<T>(CancellationToken cancellationToken = default)
         where T : class
     {
         if (Request is null)
@@ -157,24 +168,18 @@ public class HttpRequestBuilder
             case "GET":
                 var result = await AsyncHttpClient.GetAsync<T>(this, cancellationToken);
             
-                if (result is null)
-                    return null;
-            
-                if (RequiredStatusCode is not null && result.Value.Item1 != RequiredStatusCode)
-                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {result.Value.Item1}.");
-
-                return result.Value.Item2;
+                if (RequiredStatusCode is not null && result.Response.StatusCode != RequiredStatusCode)
+                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {result.Response.StatusCode} with the following body: {result.RawBody}");
+                
+                return result;
             
             case "POST":
                 var postResult = await AsyncHttpClient.PostAsync<T>(this, cancellationToken);
                 
-                if (postResult is null)
-                    return null;
+                if (RequiredStatusCode is not null && postResult.Response.StatusCode != RequiredStatusCode)
+                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {postResult.Response.StatusCode} with the following body: {postResult.RawBody}");
                 
-                if (RequiredStatusCode is not null && postResult.Value.Item1 != RequiredStatusCode)
-                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {postResult.Value.Item1}.");
-
-                return postResult.Value.Item2;
+                return postResult;
             
             //case HttpMethod.Put:
             //    return await SendPutAsync(cancellationToken);
