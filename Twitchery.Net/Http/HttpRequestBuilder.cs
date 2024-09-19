@@ -69,8 +69,11 @@ public class HttpRequestBuilder
         return this;
     }
     
-    public HttpRequestBuilder SetQueryString<TQuery>(TQuery query) where TQuery : class, IQueryParameters
+    public HttpRequestBuilder SetQueryString<TQuery>(TQuery? query) where TQuery : class, IQueryParameters
     {
+        if (query is null)
+            return this;
+        
         Uri = new UriBuilder(Uri)
         {
             Query = query.ToQueryString()
@@ -82,6 +85,15 @@ public class HttpRequestBuilder
     public HttpRequestBuilder SetBody(string body)
     {
         Body = body;
+        return this;
+    }
+    
+    public HttpRequestBuilder SetBody<T>(T? body) where T : class
+    {
+        if (body is null)
+            return this;
+        
+        Body = JsonConvert.SerializeObject(body, Formatting.None);
         return this;
     }
     
@@ -116,8 +128,12 @@ public class HttpRequestBuilder
         request.RequestUri = Uri;
         
         if (Body is not null)
-            request.Content = new StringContent(Body ?? string.Empty, Encoding.UTF8, Headers.GetValueOrDefault("Content-Type", "application/json"));
-        
+        {
+            var mediaType = Headers.GetValueOrDefault("Content-Type", "application/json");
+            var strContent = new StringContent(Body ?? string.Empty, Encoding.UTF8, mediaType);
+            request.Content = strContent;
+        }
+
         Request = request;
         
         return this;

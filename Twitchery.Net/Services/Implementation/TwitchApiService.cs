@@ -85,12 +85,9 @@ public class TwitchApiService : ITwitchApiService
         return true;
     }
 
-    private async Task<TResponse?> GetTwitchApiAsync<TQuery, TResponse>(TQuery query, CancellationToken token = default, [CallerMemberName] string? callerMethodName = null)
-        where TQuery : class, IQueryParameters
-        where TResponse : class
+    private ApiRoute PreTwitchApiCall(string callerMemberName)
     {
-        ArgumentException.ThrowIfNullOrEmpty(callerMethodName, nameof(callerMethodName));
-        ArgumentNullException.ThrowIfNull(query);
+        ArgumentException.ThrowIfNullOrEmpty(callerMemberName, nameof(callerMemberName));
         
         if (string.IsNullOrWhiteSpace(ClientId))
         {
@@ -102,7 +99,7 @@ public class TwitchApiService : ITwitchApiService
             throw new ApiException("Access Token is required.");
         }
 
-        var method = GetType().GetMethod(callerMethodName) ?? throw new MissingMethodException(GetType().FullName, callerMethodName);
+        var method = GetType().GetMethod(callerMemberName) ?? throw new MissingMethodException(GetType().FullName, callerMemberName);
         var routeAttribute = method.GetCustomAttribute<ApiRoute>() ?? throw new Exception("No ApiRoute Attribute");
         var requiredScopes = routeAttribute.RequiredScopes;
         
@@ -114,28 +111,64 @@ public class TwitchApiService : ITwitchApiService
         {
             throw new UriFormatException($"Invalid API route URL: {apiFullRoute}");
         }
-
-        switch (routeAttribute.HttpMethod)
-        {
-            case "GET":
-            {
-                var result = await AsyncHttpClient
-                    .StartGet(apiFullRoute)
-                    .AddHeader("Authorization", $"Bearer {AccessToken}")
-                    .AddHeader("Client-Id", ClientId)
-                    .SetQueryString(query)
-                    .RequireStatusCode(200)
-                    .Build()
-                    .SendAsync<TResponse>(token);
         
-                return result.Body;
-            }
+        return routeAttribute;
+    }
 
-            default:
-            {
-                throw new NotImplementedException($"HTTP Method {routeAttribute.HttpMethod} is not implemented.");
-            }
+    private async Task<TResponse?> GetTwitchApiAsync<TQuery, TResponse>(TQuery? query, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
+        where TQuery : class, IQueryParameters
+        where TResponse : class
+    {
+        ArgumentNullException.ThrowIfNull(query, nameof(query));
+        ArgumentException.ThrowIfNullOrEmpty(callerMemberName, nameof(callerMemberName));
+        
+        var routeAttribute = PreTwitchApiCall(callerMemberName);
+        var apiFullRoute = $"{TwitchApiEndpoint}{routeAttribute.Route}";
+
+        if (routeAttribute.Route.Equals("GET", StringComparison.OrdinalIgnoreCase) is false)
+        {
+            throw new ApiException("Only GET requests are supported.");
         }
+
+        var result = await AsyncHttpClient
+            .StartGet(apiFullRoute)
+            .AddHeader("Authorization", $"Bearer {AccessToken}")
+            .AddHeader("Client-Id", ClientId!)
+            .SetQueryString(query)
+            .RequireStatusCode(routeAttribute.RequiredStatusCode)
+            .Build()
+            .SendAsync<TResponse>(token);
+
+        return result.Body;
+    }
+    
+    private async Task<TResponse?> PostTwitchApiAsync<TQuery, TBody, TResponse>(TQuery? query, TBody? body, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
+        where TQuery : class, IQueryParameters
+        where TBody : class
+        where TResponse : class
+    {
+        ArgumentNullException.ThrowIfNull(query, nameof(query));
+        ArgumentException.ThrowIfNullOrEmpty(callerMemberName, nameof(callerMemberName));
+        
+        var routeAttribute = PreTwitchApiCall(callerMemberName);
+        var apiFullRoute = $"{TwitchApiEndpoint}{routeAttribute.Route}";
+
+        if (routeAttribute.Route.Equals("GET", StringComparison.OrdinalIgnoreCase) is false)
+        {
+            throw new ApiException("Only GET requests are supported.");
+        }
+
+        var result = await AsyncHttpClient
+            .StartGet(apiFullRoute)
+            .AddHeader("Authorization", $"Bearer {AccessToken}")
+            .AddHeader("Client-Id", ClientId!)
+            .SetQueryString(query)
+            .SetBody(body)
+            .RequireStatusCode(routeAttribute.RequiredStatusCode)
+            .Build()
+            .SendAsync<TResponse>(token);
+
+        return result.Body;
     }
     
     [ApiRoute("GET", "chat/chatters", "moderator:read:chatters")]
