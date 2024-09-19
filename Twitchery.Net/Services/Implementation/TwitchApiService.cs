@@ -222,4 +222,12 @@ public class TwitchApiService : ITwitchApiService
         
         return await GetTwitchApiAsync<GetStreamsRequest, GetStreamsResponse>(request, cancellationToken);
     }
+    
+    [ApiRoute("GET", "channels")]
+    public async Task<GetChannelInformationResponse?> GetChannelInformationAsync(string broadcasterId, CancellationToken cancellationToken = default)
+    {
+        var request = new GetChannelInformationRequest(broadcasterId);
+        
+        return await GetTwitchApiAsync<GetChannelInformationRequest, GetChannelInformationResponse>(request, cancellationToken);
+    }
 }

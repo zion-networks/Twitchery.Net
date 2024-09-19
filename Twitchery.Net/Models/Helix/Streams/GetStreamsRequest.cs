@@ -4,19 +4,19 @@ namespace TwitcheryNet.Models.Helix.Streams;
 
 public class GetStreamsRequest : IQueryParameters
 {
-    [QueryParameter("user_id")]
+    [QueryParameter("user_id", false, true)]
     public List<string>? UserId { get; set; }
     
-    [QueryParameter("user_login")]
+    [QueryParameter("user_login", false, true)]
     public List<string>? UserLogin { get; set; }
     
-    [QueryParameter("game_id")]
+    [QueryParameter("game_id", false, true)]
     public List<string>? GameId { get; set; }
     
     [QueryParameter("type")]
     public string? Type { get; set; }
     
-    [QueryParameter("language")]
+    [QueryParameter("language", false, true)]
     public List<string>? Language { get; set; }
     
     [QueryParameter("first")]

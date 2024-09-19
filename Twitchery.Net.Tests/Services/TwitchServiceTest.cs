@@ -150,4 +150,35 @@ public class Tests
             }
         });
     }
+    
+    [Test, Order(5)]
+    public void TestGetChannelInformation()
+    {
+        Assert.That(_twitchApiService, Is.Not.Null);
+        Assert.That(_twitchApiService.AccessToken, Is.Not.Empty);
+        
+        Assert.DoesNotThrowAsync(async () =>
+        {
+            var channelInfos = await _twitchApiService.GetChannelInformationAsync(BroadcasterId);
+            
+            Assert.That(channelInfos, Is.Not.Null);
+            
+            foreach (var channelInfo in channelInfos.ChannelInformations)
+            {
+                await TestContext.Out.WriteLineAsync($"Channel Info: {channelInfo.BroadcasterName} currently streaming {channelInfo.GameName} with title {channelInfo.Title}");
+                
+                Assert.Multiple(() =>
+                {
+                    Assert.That(channelInfo, Is.Not.Null);
+                    Assert.That(channelInfo.BroadcasterId, Is.Not.Empty);
+                    Assert.That(channelInfo.BroadcasterLogin, Is.Not.Empty);
+                    Assert.That(channelInfo.BroadcasterName, Is.Not.Empty);
+                    Assert.That(channelInfo.BroadcasterLanguage, Is.Not.Empty);
+                    Assert.That(channelInfo.GameName, Is.Not.Empty);
+                    Assert.That(channelInfo.GameId, Is.Not.Empty);
+                    Assert.That(channelInfo.Title, Is.Not.Empty);
+                });
+            }
+        });
+    }
 }
