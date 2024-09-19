@@ -1,62 +1,42 @@
 using TwitcheryNet.Extensions.TwitchApi;
-using TwitcheryNet.Http;
 using TwitcheryNet.Services.Implementation;
-using static TwitcheryNet.Tests.Constants;
 
 namespace TwitcheryNet.Tests.Services;
 
 public class Tests
 {
     private TwitchApiService? _twitchApiService;
+
+    private string _twitchClientId = string.Empty;
+    private string _twitchAccessToken = string.Empty;
+    private string _twitchBroadcasterId = string.Empty;
+    private string _twitchModeratorId = string.Empty;
     
     [SetUp]
     public void Setup()
     {
-        AsyncHttpClient.OnResponse = (response, body) =>
+        _twitchClientId = Environment.GetEnvironmentVariable("TWITCH_CLIENT_ID") ?? string.Empty;
+        _twitchAccessToken = Environment.GetEnvironmentVariable("TWITCH_ACCESS_TOKEN") ?? string.Empty;
+        _twitchBroadcasterId = Environment.GetEnvironmentVariable("TWITCH_BROADCASTER_ID") ?? string.Empty;
+        _twitchModeratorId = Environment.GetEnvironmentVariable("TWITCH_MODERATOR_ID") ?? string.Empty;
+        
+        Assert.Multiple(() =>
         {
-            TestContext.Out.WriteLineAsync($"Response: [{response.StatusCode}] {body}");
-        };
+            Assert.That(_twitchClientId, Is.Not.Empty);
+            Assert.That(_twitchAccessToken, Is.Not.Empty);
+            Assert.That(_twitchBroadcasterId, Is.Not.Empty);
+            Assert.That(_twitchModeratorId, Is.Not.Empty);
+        });
         
         _twitchApiService ??= new TwitchApiService
         {
-            ClientId = ClientId
+            ClientId = _twitchClientId,
+            AccessToken = _twitchAccessToken
         };
-
-        if (string.IsNullOrEmpty(_twitchApiService.AccessToken))
-        {
-            _twitchApiService.StartImplicitAuthenticationAsync("http://localhost:9999", [
-                "bits:read",
-                "chat:read",
-                "channel:read:subscriptions",
-                "channel:read:redemptions",
-                "channel:read:hype_train",
-                "channel:read:polls",
-                "channel:read:predictions",
-                "channel:read:goals",
-                "channel:read:vips",
-                "channel:read:charity",
-                "channel:read:guest_star",
-                "moderator:read:chatters",
-                "moderator:read:shoutouts",
-                "moderator:read:followers",
-                "moderation:read",
-                "channel:bot",
-                "user:bot",
-                "user:read:chat",
-                "chat:edit",
-                "user:write:chat",
-                "user:read:emotes"
-            ]).Wait();
-        }
-    }
-
-    [Test, Order(1)]
-    public void TestOAuthUserLogin()
-    {
+        
         Assert.That(_twitchApiService, Is.Not.Null);
-        Assert.That(_twitchApiService.AccessToken, Is.Not.Empty);
     }
-    
+
     [Test, Order(2)]
     public void TestGetChatters()
     {
@@ -65,7 +45,7 @@ public class Tests
         
         Assert.DoesNotThrowAsync(async () =>
         {
-            var chatters = await _twitchApiService.GetChattersAsync(BroadcasterId, ModeratorId);
+            var chatters = await _twitchApiService.GetChattersAsync(_twitchBroadcasterId, _twitchModeratorId);
             
             Assert.That(chatters, Is.Not.Null);
             Assert.That(chatters.Chatters, Is.Not.Count.Zero);
@@ -93,7 +73,7 @@ public class Tests
         
         Assert.DoesNotThrowAsync(async () =>
         {
-            var followers = await _twitchApiService.GetChannelFollowersAsync(BroadcasterId);
+            var followers = await _twitchApiService.GetChannelFollowersAsync(_twitchBroadcasterId);
             
             Assert.That(followers, Is.Not.Null);
             Assert.That(followers.Followers, Is.Not.Count.Zero);
@@ -160,7 +140,7 @@ public class Tests
         
         Assert.DoesNotThrowAsync(async () =>
         {
-            var channelInfos = await _twitchApiService.GetChannelInformationAsync(BroadcasterId);
+            var channelInfos = await _twitchApiService.GetChannelInformationAsync(_twitchBroadcasterId);
             
             Assert.That(channelInfos, Is.Not.Null);
             
@@ -191,7 +171,7 @@ public class Tests
         
         Assert.DoesNotThrowAsync(async () =>
         {
-            var sentMessageResponse = await _twitchApiService.SendChatMessageUserAsync(BroadcasterId, BroadcasterId, "Hello, World from Twitchery.Net!");
+            var sentMessageResponse = await _twitchApiService.SendChatMessageUserAsync(_twitchBroadcasterId, _twitchBroadcasterId, "Hello, World from Twitchery.Net!");
             
             Assert.That(sentMessageResponse, Is.Not.Null);
             

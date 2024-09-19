@@ -1,0 +1,33 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Twitchery.Net Build and Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --no-restore
+      - name: Test
+        env:
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_ACCESS_TOKEN: ${{ secrets.TWITCH_ACCESS_TOKEN }}
+          TWITCH_BROADCASTER_ID: ${{ vars.TWITCH_BROADCASTER_ID }}
+          TWITCH_MODERATOR_ID: ${{ vars.TWITCH_MODERATOR_ID }}
+        run: dotnet test --no-build --verbosity normal
