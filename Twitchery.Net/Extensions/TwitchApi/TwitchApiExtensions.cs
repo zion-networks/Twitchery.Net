@@ -1,5 +1,6 @@
 using TwitcheryNet.Attributes;
 using TwitcheryNet.Models.Helix.Streams;
+using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Extensions.TwitchApi;
@@ -32,5 +33,21 @@ public static class TwitchApiExtensions
         };
         
         return await service.GetTwitchApiAsync<GetStreamsRequest, GetStreamsResponse>(request, typeof(TwitchApiExtensions), cancellationToken);
+    }
+    
+    [ApiRoute("GET", "users")]
+    public static async Task<GetUsersResponse?> GetUsersAsync(
+        this ITwitchApiService service,
+        List<string>? userIds = null,
+        List<string>? userLogins = null,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new GetUsersRequest
+        {
+            Id = userIds,
+            Login = userLogins
+        };
+        
+        return await service.GetTwitchApiAsync<GetUsersRequest, GetUsersResponse>(request, typeof(TwitchApiExtensions), cancellationToken);
     }
 }
