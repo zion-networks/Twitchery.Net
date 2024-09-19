@@ -61,7 +61,7 @@ public class Tests
         Assert.That(_twitchApiService, Is.Not.Null);
     }
 
-    [Test, Order(2)]
+    [Test]
     public void TestGetChatters()
     {
         Assert.That(_twitchApiService, Is.Not.Null);
@@ -89,7 +89,7 @@ public class Tests
         });
     }
     
-    [Test, Order(3)]
+    [Test]
     public void TestGetChannelFollowers()
     {
         Assert.That(_twitchApiService, Is.Not.Null);
@@ -118,7 +118,7 @@ public class Tests
         });
     }
     
-    [Test, Order(4)]
+    [Test]
     public void TestGetStreams()
     {
         Assert.That(_twitchApiService, Is.Not.Null);
@@ -156,7 +156,7 @@ public class Tests
         });
     }
     
-    [Test, Order(5)]
+    [Test]
     public void TestGetChannelInformation()
     {
         Assert.That(_twitchApiService, Is.Not.Null);
@@ -187,7 +187,7 @@ public class Tests
         });
     }
     
-    [Test, Order(6)]
+    [Test]
     public void TestSendChatMessageUser()
     {
         Assert.That(_twitchApiService, Is.Not.Null);
