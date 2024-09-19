@@ -31,7 +31,31 @@ public class Tests
         _twitchApiService ??= new TwitchApiService
         {
             ClientId = _twitchClientId,
-            AccessToken = _twitchAccessToken
+            AccessToken = _twitchAccessToken,
+            Scopes =
+            {
+                "bits:read",
+                "chat:read",
+                "channel:read:subscriptions",
+                "channel:read:redemptions",
+                "channel:read:hype_train",
+                "channel:read:polls",
+                "channel:read:predictions",
+                "channel:read:goals",
+                "channel:read:vips",
+                "channel:read:charity",
+                "channel:read:guest_star",
+                "moderator:read:chatters",
+                "moderator:read:shoutouts",
+                "moderator:read:followers",
+                "moderation:read",
+                "channel:bot",
+                "user:bot",
+                "user:read:chat",
+                "chat:edit",
+                "user:write:chat",
+                "user:read:emotes"
+            }
         };
         
         Assert.That(_twitchApiService, Is.Not.Null);
