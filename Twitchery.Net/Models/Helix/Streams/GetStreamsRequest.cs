@@ -2,7 +2,7 @@ using TwitcheryNet.Attributes;
 
 namespace TwitcheryNet.Models.Helix.Streams;
 
-public class GetStreamsRequest : IQueryParameters
+public class GetStreamsRequest : IQueryParameters, IWithPagination
 {
     [QueryParameter("user_id", false, true)]
     public List<string>? UserId { get; set; }

@@ -2,7 +2,7 @@ using TwitcheryNet.Attributes;
 
 namespace TwitcheryNet.Models.Helix.Chat;
 
-public class GetChattersRequest : IQueryParameters
+public class GetChattersRequest : IQueryParameters, IWithPagination
 {
     [QueryParameter("broadcaster_id", true)]
     public string BroadcasterId { get; set; }

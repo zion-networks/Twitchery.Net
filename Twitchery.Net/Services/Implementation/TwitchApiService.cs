@@ -140,7 +140,7 @@ public class TwitchApiService : ITwitchApiService
     }
     
     public async Task<TFullResponse> GetTwitchApiAllAsync<TQuery, TResponse, TFullResponse>(TQuery? query, Type callerType, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
-        where TQuery : class, IQueryParameters
+        where TQuery : class, IQueryParameters, IWithPagination
         where TResponse : class, IHasPagination
         where TFullResponse : class, IHasTotal, IFullResponse<TResponse>, new()
     {
@@ -159,6 +159,11 @@ public class TwitchApiService : ITwitchApiService
         string? after = null;
         do
         {
+            if (query is IWithPagination pagination)
+            {
+                pagination.After = after;
+            }
+            
             var result = await AsyncHttpClient
                 .StartGet(apiFullRoute)
                 .AddHeader("Authorization", $"Bearer {AccessToken}")

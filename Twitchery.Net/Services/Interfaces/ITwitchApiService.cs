@@ -16,11 +16,6 @@ public interface ITwitchApiService
         where TQuery : class, IQueryParameters
         where TResponse : class;
 
-    Task<TFullResponse> GetTwitchApiAllAsync<TQuery, TResponse, TFullResponse>(TQuery? query, Type callerType, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
-        where TQuery : class, IQueryParameters
-        where TResponse : class, IHasPagination
-        where TFullResponse : class, IHasTotal, IFullResponse<TResponse>, new();
-
     Task<TResponse?> PostTwitchApiAsync<TQuery, TBody, TResponse>(TQuery? query, TBody? body, Type callerType,
         CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
         where TQuery : class, IQueryParameters
@@ -35,4 +30,9 @@ public interface ITwitchApiService
     Task<bool> StartImplicitAuthenticationAsync(string redirectUri, string[] scopes);
     
     ApiRoute PreTwitchApiCall(Type callerType, string callerMemberName);
+
+    Task<TFullResponse> GetTwitchApiAllAsync<TQuery, TResponse, TFullResponse>(TQuery? query, Type callerType, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
+        where TQuery : class, IQueryParameters, IWithPagination
+        where TResponse : class, IHasPagination
+        where TFullResponse : class, IHasTotal, IFullResponse<TResponse>, new();
 }
