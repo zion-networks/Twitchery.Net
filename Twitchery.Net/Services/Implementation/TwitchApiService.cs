@@ -153,13 +153,13 @@ public class TwitchApiService : ITwitchApiService
         var routeAttribute = PreTwitchApiCall(callerMemberName);
         var apiFullRoute = $"{TwitchApiEndpoint}{routeAttribute.Route}";
 
-        if (routeAttribute.Route.Equals("GET", StringComparison.OrdinalIgnoreCase) is false)
+        if (routeAttribute.Route.Equals("POST", StringComparison.OrdinalIgnoreCase) is false)
         {
-            throw new ApiException("Only GET requests are supported.");
+            throw new ApiException("Only POST requests are supported.");
         }
 
         var result = await AsyncHttpClient
-            .StartGet(apiFullRoute)
+            .StartPost(apiFullRoute)
             .AddHeader("Authorization", $"Bearer {AccessToken}")
             .AddHeader("Client-Id", ClientId!)
             .SetQueryString(query)
