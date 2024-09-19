@@ -31,8 +31,8 @@ public class Tests
         _twitchApiService ??= new TwitchApiService
         {
             ClientId = _twitchClientId,
-            AccessToken = _twitchAccessToken,
-            Scopes =
+            ClientAccessToken = _twitchAccessToken,
+            ClientScopes =
             {
                 "bits:read",
                 "chat:read",
@@ -65,7 +65,7 @@ public class Tests
     public void TestGetChatters()
     {
         Assert.That(_twitchApiService, Is.Not.Null);
-        Assert.That(_twitchApiService.AccessToken, Is.Not.Empty);
+        Assert.That(_twitchApiService.ClientAccessToken, Is.Not.Empty);
         
         Assert.DoesNotThrowAsync(async () =>
         {
@@ -93,7 +93,7 @@ public class Tests
     public void TestGetChannelFollowers()
     {
         Assert.That(_twitchApiService, Is.Not.Null);
-        Assert.That(_twitchApiService.AccessToken, Is.Not.Empty);
+        Assert.That(_twitchApiService.ClientAccessToken, Is.Not.Empty);
         
         Assert.DoesNotThrowAsync(async () =>
         {
@@ -122,7 +122,7 @@ public class Tests
     public void TestGetStreams()
     {
         Assert.That(_twitchApiService, Is.Not.Null);
-        Assert.That(_twitchApiService.AccessToken, Is.Not.Empty);
+        Assert.That(_twitchApiService.ClientAccessToken, Is.Not.Empty);
         
         Assert.DoesNotThrowAsync(async () =>
         {
@@ -160,7 +160,7 @@ public class Tests
     public void TestGetChannelInformation()
     {
         Assert.That(_twitchApiService, Is.Not.Null);
-        Assert.That(_twitchApiService.AccessToken, Is.Not.Empty);
+        Assert.That(_twitchApiService.ClientAccessToken, Is.Not.Empty);
         
         Assert.DoesNotThrowAsync(async () =>
         {
@@ -191,7 +191,7 @@ public class Tests
     public void TestSendChatMessageUser()
     {
         Assert.That(_twitchApiService, Is.Not.Null);
-        Assert.That(_twitchApiService.AccessToken, Is.Not.Empty);
+        Assert.That(_twitchApiService.ClientAccessToken, Is.Not.Empty);
         
         Assert.DoesNotThrowAsync(async () =>
         {

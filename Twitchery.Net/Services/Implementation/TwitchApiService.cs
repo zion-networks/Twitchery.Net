@@ -7,6 +7,7 @@ using TwitcheryNet.Exceptions;
 using TwitcheryNet.Http;
 using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Helix;
+using TwitcheryNet.Models.Indexer;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Services.Implementation;
@@ -17,8 +18,8 @@ public class TwitchApiService : ITwitchApiService
 
     public string? ClientId { get; set; }
     public string? ClientSecret { get; set; }
-    public string? AccessToken { get; set; }
-    public List<string> Scopes { get; private set; } = [];
+    public string? ClientAccessToken { get; set; }
+    public List<string> ClientScopes { get; private set; } = [];
 
     #endregion
 
@@ -32,6 +33,15 @@ public class TwitchApiService : ITwitchApiService
     
     private const string TwitchImplicitGrantUrl = "https://id.twitch.tv/oauth2/authorize";
     private const string TwitchApiEndpoint = "https://api.twitch.tv/helix/";
+    
+    #endregion
+    
+    #region Indexed Properties
+
+    public UsersIndex Users => new(this);
+    public StreamsIndex Streams => new(this);
+    public ChannelInformationsIndex Channels => new(this);
+    public ChannelFollowersIndex ChannelFollowers => new(this);
     
     #endregion
     
@@ -49,16 +59,26 @@ public class TwitchApiService : ITwitchApiService
         Logger = logger;
     }
     
-    public async Task<bool> StartImplicitAuthenticationAsync(string redirectUri, string[] scopes)
+    public string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null)
+    {
+        var scope = string.Join("+", scopes);
+        
+        var url = $"{TwitchImplicitGrantUrl}" +
+               $"?client_id={ClientId}" +
+               $"&redirect_uri={redirectUri}" +
+               $"&response_type=token" +
+               $"&scope={scope}";
+        
+        if (state is not null)
+            url += $"&state={state}";
+        
+        return url;
+    }
+    
+    public async Task<bool> StartBrowserUserAuthentication(string redirectUri, string[] scopes)
     {
         var state = Guid.NewGuid().ToString();
-        var scope = string.Join("+", scopes);
-        var url = $"{TwitchImplicitGrantUrl}" +
-                  $"?client_id={ClientId}" +
-                  $"&redirect_uri={redirectUri}" +
-                  $"&response_type=token" +
-                  $"&scope={scope}" +
-                  $"&state={state}";
+        var url = GetOAuthUrl(redirectUri, scopes, state);
         
         var oauthServer = new OAuthHttpServer(redirectUri.EndsWith('/') ? redirectUri : $"{redirectUri}/", state);
         
@@ -73,11 +93,11 @@ public class TwitchApiService : ITwitchApiService
             return false;
         }
         
-        AccessToken = oauthLogin.AccessToken;
-        Scopes = (oauthLogin.Scope?.Split('+') ?? [])
+        ClientAccessToken = oauthLogin.AccessToken;
+        ClientScopes = (oauthLogin.Scope?.Split('+') ?? [])
             .Select(Uri.UnescapeDataString)
             .Where(s => !string.IsNullOrWhiteSpace(s))
-            .ToList()!;
+            .ToList();
         
         return true;
     }
@@ -91,7 +111,7 @@ public class TwitchApiService : ITwitchApiService
             throw new ApiException("Client ID is required.");
         }
         
-        if (string.IsNullOrWhiteSpace(AccessToken))
+        if (string.IsNullOrWhiteSpace(ClientAccessToken))
         {
             throw new ApiException("Access Token is required.");
         }
@@ -100,7 +120,7 @@ public class TwitchApiService : ITwitchApiService
         var routeAttribute = method.GetCustomAttribute<ApiRoute>() ?? throw new Exception("No ApiRoute Attribute");
         var requiredScopes = routeAttribute.RequiredScopes;
         
-        MissingTwitchScopeException.ThrowIfMissing(Scopes, requiredScopes);
+        MissingTwitchScopeException.ThrowIfMissing(ClientScopes, requiredScopes);
         
         var apiFullRoute = $"{TwitchApiEndpoint}{routeAttribute.Route}";
         
@@ -129,7 +149,7 @@ public class TwitchApiService : ITwitchApiService
 
         var result = await AsyncHttpClient
             .StartGet(apiFullRoute)
-            .AddHeader("Authorization", $"Bearer {AccessToken}")
+            .AddHeader("Authorization", $"Bearer {ClientAccessToken}")
             .AddHeader("Client-Id", ClientId!)
             .SetQueryString(query)
             .RequireStatusCode(routeAttribute.RequiredStatusCode)
@@ -166,7 +186,7 @@ public class TwitchApiService : ITwitchApiService
             
             var result = await AsyncHttpClient
                 .StartGet(apiFullRoute)
-                .AddHeader("Authorization", $"Bearer {AccessToken}")
+                .AddHeader("Authorization", $"Bearer {ClientAccessToken}")
                 .AddHeader("Client-Id", ClientId!)
                 .SetQueryString(query)
                 .RequireStatusCode(routeAttribute.RequiredStatusCode)
@@ -204,7 +224,7 @@ public class TwitchApiService : ITwitchApiService
 
         var result = await AsyncHttpClient
             .StartPost(apiFullRoute)
-            .AddHeader("Authorization", $"Bearer {AccessToken}")
+            .AddHeader("Authorization", $"Bearer {ClientAccessToken}")
             .AddHeader("Client-Id", ClientId!)
             .SetQueryString(query)
             .SetBody(body)
@@ -231,7 +251,7 @@ public class TwitchApiService : ITwitchApiService
 
         var result = await AsyncHttpClient
             .StartPost(apiFullRoute)
-            .AddHeader("Authorization", $"Bearer {AccessToken}")
+            .AddHeader("Authorization", $"Bearer {ClientAccessToken}")
             .AddHeader("Client-Id", ClientId!)
             .SetBody(body)
             .RequireStatusCode(routeAttribute.RequiredStatusCode)
