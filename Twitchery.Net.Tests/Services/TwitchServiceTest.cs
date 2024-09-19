@@ -1,3 +1,4 @@
+using TwitcheryNet.Extensions.TwitchApi;
 using TwitcheryNet.Http;
 using TwitcheryNet.Services.Implementation;
 using static TwitcheryNet.Tests.Constants;
