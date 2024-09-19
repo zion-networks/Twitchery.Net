@@ -1,13 +1,13 @@
 using System.Net;
 using System.Text;
 using Newtonsoft.Json;
+using TwitcheryNet.Misc;
 
 namespace TwitcheryNet.Http;
 
 public class OAuthHttpServer
 {
     private string Prefix { get; }
-    private string OAuthHtmlPage { get; }
     private string State { get; }
     
     public OAuthHttpServer(string prefix, string state)
@@ -17,18 +17,6 @@ public class OAuthHttpServer
 
         Prefix = prefix;
         State = state;
-        
-        if (File.Exists(Path.Combine(Environment.CurrentDirectory, "wwwroot", "oauth.html")) is false)
-        {
-            throw new FileNotFoundException(
-                "The OAuth HTML page was not found. Please make sure it exists in the wwwroot directory.",
-                Path.Combine(Environment.CurrentDirectory, "wwwroot", "oauth.html"));
-        }
-        
-        OAuthHtmlPage = File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "wwwroot", "oauth.html"));
-        
-        if (string.IsNullOrWhiteSpace(OAuthHtmlPage))
-            throw new InvalidOperationException("The OAuth HTML page is empty.");
     }
 
 
@@ -58,7 +46,7 @@ public class OAuthHttpServer
                 // GET PREFIX/#access_token=...&scope=...&state=...&token_type=...
                 case "/":
                 {
-                    var response = Encoding.UTF8.GetBytes(OAuthHtmlPage);
+                    var response = Encoding.UTF8.GetBytes(ConstantHtml.OAuthHtml);
                     ctx.Response.ContentType = "text/html";
                     ctx.Response.ContentLength64 = response.Length;
                     await ctx.Response.OutputStream.WriteAsync(response, cancellationToken);
