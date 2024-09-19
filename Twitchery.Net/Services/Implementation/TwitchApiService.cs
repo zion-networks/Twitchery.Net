@@ -139,6 +139,48 @@ public class TwitchApiService : ITwitchApiService
         return result.Body;
     }
     
+    public async Task<TFullResponse> GetTwitchApiAllAsync<TQuery, TResponse, TFullResponse>(TQuery? query, Type callerType, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
+        where TQuery : class, IQueryParameters
+        where TResponse : class, IHasPagination
+        where TFullResponse : class, IHasTotal, IFullResponse<TResponse>, new()
+    {
+        ArgumentNullException.ThrowIfNull(query, nameof(query));
+        ArgumentException.ThrowIfNullOrEmpty(callerMemberName, nameof(callerMemberName));
+        
+        var routeAttribute = PreTwitchApiCall(callerType, callerMemberName);
+        var apiFullRoute = $"{TwitchApiEndpoint}{routeAttribute.Route}";
+
+        if (routeAttribute.HttpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase) is false)
+        {
+            throw new ApiException("Only GET requests are supported.");
+        }
+        
+        var responses = new TFullResponse();
+        string? after = null;
+        do
+        {
+            var result = await AsyncHttpClient
+                .StartGet(apiFullRoute)
+                .AddHeader("Authorization", $"Bearer {AccessToken}")
+                .AddHeader("Client-Id", ClientId!)
+                .SetQueryString(query)
+                .RequireStatusCode(routeAttribute.RequiredStatusCode)
+                .Build()
+                .SendAsync<TResponse>(token);
+            
+            var response = result.Body;
+            
+            if (response is null)
+                continue;
+            
+            responses.Add(response);
+            
+            after = response.Pagination.Cursor;
+        } while (after is not null);
+        
+        return responses;
+    }
+    
     public async Task<TResponse?> PostTwitchApiAsync<TQuery, TBody, TResponse>(TQuery? query, TBody? body, Type callerType, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
         where TQuery : class, IQueryParameters
         where TBody : class

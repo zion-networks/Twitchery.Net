@@ -97,7 +97,7 @@ public class Tests
         
         Assert.DoesNotThrowAsync(async () =>
         {
-            var followers = await _twitchApiService.GetChannelFollowersAsync(_twitchBroadcasterId);
+            var followers = await _twitchApiService.GetAllChannelFollowersAsync(_twitchBroadcasterId);
             
             Assert.That(followers, Is.Not.Null);
             Assert.That(followers.Followers, Is.Not.Count.Zero);
