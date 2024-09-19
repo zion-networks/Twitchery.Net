@@ -9,6 +9,7 @@ using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Channels;
 using TwitcheryNet.Models.Helix.Chat;
+using TwitcheryNet.Models.Helix.Chat.Messages;
 using TwitcheryNet.Models.Helix.Streams;
 using TwitcheryNet.Services.Interfaces;
 
@@ -171,6 +172,32 @@ public class TwitchApiService : ITwitchApiService
         return result.Body;
     }
     
+    private async Task<TResponse?> PostTwitchApiAsync<TBody, TResponse>(TBody? body, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
+        where TBody : class
+        where TResponse : class
+    {
+        ArgumentException.ThrowIfNullOrEmpty(callerMemberName, nameof(callerMemberName));
+        
+        var routeAttribute = PreTwitchApiCall(callerMemberName);
+        var apiFullRoute = $"{TwitchApiEndpoint}{routeAttribute.Route}";
+
+        if (routeAttribute.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase) is false)
+        {
+            throw new ApiException("Only POST requests are supported.");
+        }
+
+        var result = await AsyncHttpClient
+            .StartPost(apiFullRoute)
+            .AddHeader("Authorization", $"Bearer {AccessToken}")
+            .AddHeader("Client-Id", ClientId!)
+            .SetBody(body)
+            .RequireStatusCode(routeAttribute.RequiredStatusCode)
+            .Build()
+            .SendAsync<TResponse>(token);
+
+        return result.Body;
+    }
+    
     [ApiRoute("GET", "chat/chatters", "moderator:read:chatters")]
     public async Task<GetChattersResponse?> GetChattersAsync(string broadcasterId, string moderatorId, int? first = null, string? after = null, CancellationToken cancellationToken = default)
     {
@@ -229,5 +256,27 @@ public class TwitchApiService : ITwitchApiService
         var request = new GetChannelInformationRequest(broadcasterId);
         
         return await GetTwitchApiAsync<GetChannelInformationRequest, GetChannelInformationResponse>(request, cancellationToken);
+    }
+    
+    [ApiRoute("POST", "chat/messages", "user:write:chat")]
+    public async Task<SendChatMessageResponse?> SendChatMessageUserAsync(string broadcasterId, string senderId, string message, string? replyParentMessageId = null, CancellationToken cancellationToken = default)
+    {
+        var requestBody = new SendChatMessageRequestBody(broadcasterId, senderId, message)
+        {
+            ReplyParentMessageId = replyParentMessageId
+        };
+        
+        return await PostTwitchApiAsync<SendChatMessageRequestBody, SendChatMessageResponse>(requestBody, cancellationToken);
+    }
+    
+    [ApiRoute("POST", "chat/messages", "user:bot", "channel:bot")]
+    public async Task<SendChatMessageResponse?> SendChatMessageAppAsync(string broadcasterId, string senderId, string message, string? replyParentMessageId = null, CancellationToken cancellationToken = default)
+    {
+        var requestBody = new SendChatMessageRequestBody(broadcasterId, senderId, message)
+        {
+            ReplyParentMessageId = replyParentMessageId
+        };
+        
+        return await PostTwitchApiAsync<SendChatMessageRequestBody, SendChatMessageResponse>(requestBody, cancellationToken);
     }
 }

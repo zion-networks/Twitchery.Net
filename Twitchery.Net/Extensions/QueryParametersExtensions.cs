@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Web;
 using TwitcheryNet.Attributes;
@@ -32,6 +33,13 @@ public static class QueryParametersExtensions
                 }
                 
                 continue;
+            }
+            
+            var validationResults = new List<ValidationResult>();
+            var validationContext = new ValidationContext(queryParameters);
+            if (Validator.TryValidateObject(queryParameters, validationContext, validationResults, true) is false)
+            {
+                throw new QueryParameterValidationException<T>(validationResults);
             }
             
             if (value is string strVal)

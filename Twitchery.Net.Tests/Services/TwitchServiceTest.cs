@@ -181,4 +181,28 @@ public class Tests
             }
         });
     }
+    
+    [Test, Order(6)]
+    public void TestSendChatMessageUser()
+    {
+        Assert.That(_twitchApiService, Is.Not.Null);
+        Assert.That(_twitchApiService.AccessToken, Is.Not.Empty);
+        
+        Assert.DoesNotThrowAsync(async () =>
+        {
+            var sentMessageResponse = await _twitchApiService.SendChatMessageUserAsync(BroadcasterId, BroadcasterId, "Hello, World from Twitchery.Net!");
+            
+            Assert.That(sentMessageResponse, Is.Not.Null);
+            
+            foreach (var sentMessage in sentMessageResponse.SentMessages)
+            {
+                Assert.Multiple(() =>
+                {
+                    Assert.That(sentMessage.IsSent, Is.True);
+                    Assert.That(sentMessage.MessageId, Is.Not.Empty);
+                    Assert.That(sentMessage.DropReason, Is.Null);
+                });
+            }
+        });
+    }
 }
