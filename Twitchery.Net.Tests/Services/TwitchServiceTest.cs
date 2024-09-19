@@ -194,7 +194,8 @@ public class Tests
         {
             var users = await _twitchApiService.GetUsersAsync(userLogins: [ "GronkhTV" ]);
             
-            Assert.That(users, Is.Not.Null.And.Count.EqualTo(1)); 
+            Assert.That(users, Is.Not.Null); 
+            Assert.That(users.Users, Is.Not.Null.And.Count.EqualTo(1)); 
             
             foreach (var user in users.Users)
             {
