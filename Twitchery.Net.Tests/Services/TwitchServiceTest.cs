@@ -21,13 +21,10 @@ public class Tests
         _twitchBroadcasterId = Environment.GetEnvironmentVariable("TWITCH_BROADCASTER_ID") ?? string.Empty;
         _twitchModeratorId = Environment.GetEnvironmentVariable("TWITCH_MODERATOR_ID") ?? string.Empty;
         
-        Assert.Multiple(() =>
-        {
-            Assert.That(_twitchClientId, Is.Not.Empty);
-            Assert.That(_twitchAccessToken, Is.Not.Empty);
-            Assert.That(_twitchBroadcasterId, Is.Not.Empty);
-            Assert.That(_twitchModeratorId, Is.Not.Empty);
-        });
+        Assert.That(_twitchClientId, Is.Not.Empty);
+        Assert.That(_twitchAccessToken, Is.Not.Empty);
+        Assert.That(_twitchBroadcasterId, Is.Not.Empty);
+        Assert.That(_twitchModeratorId, Is.Not.Empty);
         
         _twitchApiService = new TwitchApiService
         {
@@ -73,13 +70,10 @@ public class Tests
             
             foreach (var chatter in chatters.Chatters)
             {
-                Assert.Multiple(() =>
-                {
-                    Assert.That(chatter, Is.Not.Null);
-                    Assert.That(chatter.UserId, Is.Not.Empty);
-                    Assert.That(chatter.UserLogin, Is.Not.Empty);
-                    Assert.That(chatter.UserName, Is.Not.Empty);
-                });
+                Assert.That(chatter, Is.Not.Null);
+                Assert.That(chatter.UserId, Is.Not.Empty);
+                Assert.That(chatter.UserLogin, Is.Not.Empty);
+                Assert.That(chatter.UserName, Is.Not.Empty);
             }
         });
     }
@@ -95,14 +89,11 @@ public class Tests
             
             foreach (var follower in followers.Followers)
             {
-                Assert.Multiple(() =>
-                {
-                    Assert.That(follower, Is.Not.Null);
-                    Assert.That(follower.UserId, Is.Not.Empty);
-                    Assert.That(follower.UserLogin, Is.Not.Empty);
-                    Assert.That(follower.UserName, Is.Not.Empty);
-                    Assert.That(follower.FollowedAt, Is.Not.EqualTo(default(DateTime)));
-                });
+                Assert.That(follower, Is.Not.Null);
+                Assert.That(follower.UserId, Is.Not.Empty);
+                Assert.That(follower.UserLogin, Is.Not.Empty);
+                Assert.That(follower.UserName, Is.Not.Empty);
+                Assert.That(follower.FollowedAt, Is.Not.EqualTo(default(DateTime)));
             }
         });
     }
@@ -118,24 +109,21 @@ public class Tests
             
             foreach (var stream in streams.Streams)
             {
-                Assert.Multiple(() =>
-                {
-                    Assert.That(stream, Is.Not.Null);
-                    Assert.That(stream.Id, Is.Not.Empty);
-                    Assert.That(stream.UserId, Is.Not.Empty);
-                    Assert.That(stream.UserLogin, Is.Not.Empty);
-                    Assert.That(stream.UserName, Is.Not.Empty);
-                    Assert.That(stream.ViewerCount, Is.Positive.Or.Zero);
-                    Assert.That(stream.StartedAt, Is.Not.EqualTo(default(DateTime)));
-                    Assert.That(stream.Language, Is.Not.Empty);
-                    Assert.That(stream.ThumbnailUrl, Is.Not.Empty);
-                    Assert.That(stream.Tags, Is.Not.Count.Negative);
-                    Assert.That(stream.TagIds, Is.Not.Count.Negative);
-                    Assert.That(stream.GameId, Is.Not.Empty);
-                    Assert.That(stream.GameName, Is.Not.Empty);
-                    Assert.That(stream.Type, Is.Not.Empty);
-                    Assert.That(stream.Title, Is.Not.Empty);
-                });
+                Assert.That(stream, Is.Not.Null);
+                Assert.That(stream.Id, Is.Not.Empty);
+                Assert.That(stream.UserId, Is.Not.Empty);
+                Assert.That(stream.UserLogin, Is.Not.Empty);
+                Assert.That(stream.UserName, Is.Not.Empty);
+                Assert.That(stream.ViewerCount, Is.Positive.Or.Zero);
+                Assert.That(stream.StartedAt, Is.Not.EqualTo(default(DateTime)));
+                Assert.That(stream.Language, Is.Not.Empty);
+                Assert.That(stream.ThumbnailUrl, Is.Not.Empty);
+                Assert.That(stream.Tags, Is.Not.Count.Negative);
+                Assert.That(stream.TagIds, Is.Not.Count.Negative);
+                Assert.That(stream.GameId, Is.Not.Empty);
+                Assert.That(stream.GameName, Is.Not.Empty);
+                Assert.That(stream.Type, Is.Not.Empty);
+                Assert.That(stream.Title, Is.Not.Empty);
             }
         });
     }
@@ -151,17 +139,14 @@ public class Tests
             
             foreach (var channelInfo in channelInfos.ChannelInformations)
             {
-                Assert.Multiple(() =>
-                {
-                    Assert.That(channelInfo, Is.Not.Null);
-                    Assert.That(channelInfo.BroadcasterId, Is.Not.Empty);
-                    Assert.That(channelInfo.BroadcasterLogin, Is.Not.Empty);
-                    Assert.That(channelInfo.BroadcasterName, Is.Not.Empty);
-                    Assert.That(channelInfo.BroadcasterLanguage, Is.Not.Empty);
-                    Assert.That(channelInfo.GameName, Is.Not.Empty);
-                    Assert.That(channelInfo.GameId, Is.Not.Empty);
-                    Assert.That(channelInfo.Title, Is.Not.Empty);
-                });
+                Assert.That(channelInfo, Is.Not.Null);
+                Assert.That(channelInfo.BroadcasterId, Is.Not.Empty);
+                Assert.That(channelInfo.BroadcasterLogin, Is.Not.Empty);
+                Assert.That(channelInfo.BroadcasterName, Is.Not.Empty);
+                Assert.That(channelInfo.BroadcasterLanguage, Is.Not.Empty);
+                Assert.That(channelInfo.GameName, Is.Not.Empty);
+                Assert.That(channelInfo.GameId, Is.Not.Empty);
+                Assert.That(channelInfo.Title, Is.Not.Empty);
             }
         });
     }
@@ -177,12 +162,9 @@ public class Tests
             
             foreach (var sentMessage in sentMessageResponse.SentMessages)
             {
-                Assert.Multiple(() =>
-                {
-                    Assert.That(sentMessage.IsSent, Is.True);
-                    Assert.That(sentMessage.MessageId, Is.Not.Empty);
-                    Assert.That(sentMessage.DropReason, Is.Null);
-                });
+                Assert.That(sentMessage.IsSent, Is.True);
+                Assert.That(sentMessage.MessageId, Is.Not.Empty);
+                Assert.That(sentMessage.DropReason, Is.Null);
             }
         });
     }
@@ -199,27 +181,24 @@ public class Tests
             
             foreach (var user in users.Users)
             {
-                Assert.Multiple(() =>
+                Assert.That(user, Is.Not.Null);
+                Assert.That(user.Id, Is.Not.Empty);
+                Assert.That(user.Login, Is.Not.Empty);
+                Assert.That(user.DisplayName, Is.Not.Empty);
+                Assert.That(user.Type, Is.Not.Empty);
+                Assert.That(user.BroadcasterType, Is.EqualTo(BroadcasterType.Partner));
+                Assert.That(user.Description, Is.Not.Null);
+                Assert.That(user.ProfileImageUrl, Is.Not.Null);
+                Assert.That(user.OfflineImageUrl, Is.Not.Null);
+                
+                if (_twitchApiService.ClientScopes.Contains("user:read:email"))
                 {
-                    Assert.That(user, Is.Not.Null);
-                    Assert.That(user.Id, Is.Not.Empty);
-                    Assert.That(user.Login, Is.Not.Empty);
-                    Assert.That(user.DisplayName, Is.Not.Empty);
-                    Assert.That(user.Type, Is.Not.Empty);
-                    Assert.That(user.BroadcasterType, Is.EqualTo(BroadcasterType.Partner));
-                    Assert.That(user.Description, Is.Not.Null);
-                    Assert.That(user.ProfileImageUrl, Is.Not.Null);
-                    Assert.That(user.OfflineImageUrl, Is.Not.Null);
-                    
-                    if (_twitchApiService.ClientScopes.Contains("user:read:email"))
-                    {
-                        Assert.That(user.Email, Is.Not.Empty);
-                    }
-                    else
-                    {
-                        Assert.That(user.Email, Is.Null.Or.Empty);
-                    }
-                });
+                    Assert.That(user.Email, Is.Not.Empty);
+                }
+                else
+                {
+                    Assert.That(user.Email, Is.Null.Or.Empty);
+                }
             }
         });
     }
