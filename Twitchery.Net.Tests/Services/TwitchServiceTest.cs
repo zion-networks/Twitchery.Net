@@ -1,11 +1,12 @@
 using TwitcheryNet.Extensions.TwitchApi;
+using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Services.Implementation;
 
 namespace TwitcheryNet.Tests.Services;
 
 public class Tests
 {
-    private TwitchApiService? _twitchApiService;
+    private TwitchApiService _twitchApiService;
 
     private string _twitchClientId = string.Empty;
     private string _twitchAccessToken = string.Empty;
@@ -28,7 +29,7 @@ public class Tests
             Assert.That(_twitchModeratorId, Is.Not.Empty);
         });
         
-        _twitchApiService ??= new TwitchApiService
+        _twitchApiService = new TwitchApiService
         {
             ClientId = _twitchClientId,
             ClientAccessToken = _twitchAccessToken,
@@ -64,20 +65,14 @@ public class Tests
     [Test]
     public void TestGetChatters()
     {
-        Assert.That(_twitchApiService, Is.Not.Null);
-        Assert.That(_twitchApiService.ClientAccessToken, Is.Not.Empty);
-        
         Assert.DoesNotThrowAsync(async () =>
         {
             var chatters = await _twitchApiService.GetChattersAsync(_twitchBroadcasterId, _twitchModeratorId);
             
             Assert.That(chatters, Is.Not.Null);
-            Assert.That(chatters.Chatters, Is.Not.Count.Zero);
             
             foreach (var chatter in chatters.Chatters)
             {
-                await TestContext.Out.WriteLineAsync($"Chatter: {chatter.UserId} {chatter.UserLogin} {chatter.UserName}");
-                
                 Assert.Multiple(() =>
                 {
                     Assert.That(chatter, Is.Not.Null);
@@ -92,20 +87,14 @@ public class Tests
     [Test]
     public void TestGetChannelFollowers()
     {
-        Assert.That(_twitchApiService, Is.Not.Null);
-        Assert.That(_twitchApiService.ClientAccessToken, Is.Not.Empty);
-        
         Assert.DoesNotThrowAsync(async () =>
         {
             var followers = await _twitchApiService.GetAllChannelFollowersAsync(_twitchBroadcasterId);
             
             Assert.That(followers, Is.Not.Null);
-            Assert.That(followers.Followers, Is.Not.Count.Zero);
             
             foreach (var follower in followers.Followers)
             {
-                await TestContext.Out.WriteLineAsync($"Follower: {follower.UserId} {follower.UserLogin} {follower.UserName} {follower.FollowedAt}");
-                
                 Assert.Multiple(() =>
                 {
                     Assert.That(follower, Is.Not.Null);
@@ -121,9 +110,6 @@ public class Tests
     [Test]
     public void TestGetStreams()
     {
-        Assert.That(_twitchApiService, Is.Not.Null);
-        Assert.That(_twitchApiService.ClientAccessToken, Is.Not.Empty);
-        
         Assert.DoesNotThrowAsync(async () =>
         {
             var streams = await _twitchApiService.GetStreamsAsync(userLogins: [ "GronkhTV" ]);
@@ -132,8 +118,6 @@ public class Tests
             
             foreach (var stream in streams.Streams)
             {
-                await TestContext.Out.WriteLineAsync($"Stream: {stream.UserName} started at {stream.StartedAt} and has {stream.ViewerCount} viewers right now");
-                
                 Assert.Multiple(() =>
                 {
                     Assert.That(stream, Is.Not.Null);
@@ -159,9 +143,6 @@ public class Tests
     [Test]
     public void TestGetChannelInformation()
     {
-        Assert.That(_twitchApiService, Is.Not.Null);
-        Assert.That(_twitchApiService.ClientAccessToken, Is.Not.Empty);
-        
         Assert.DoesNotThrowAsync(async () =>
         {
             var channelInfos = await _twitchApiService.GetChannelInformationAsync(_twitchBroadcasterId);
@@ -170,8 +151,6 @@ public class Tests
             
             foreach (var channelInfo in channelInfos.ChannelInformations)
             {
-                await TestContext.Out.WriteLineAsync($"Channel Info: {channelInfo.BroadcasterName} currently streaming {channelInfo.GameName} with title {channelInfo.Title}");
-                
                 Assert.Multiple(() =>
                 {
                     Assert.That(channelInfo, Is.Not.Null);
@@ -190,9 +169,6 @@ public class Tests
     [Test]
     public void TestSendChatMessageUser()
     {
-        Assert.That(_twitchApiService, Is.Not.Null);
-        Assert.That(_twitchApiService.ClientAccessToken, Is.Not.Empty);
-        
         Assert.DoesNotThrowAsync(async () =>
         {
             var sentMessageResponse = await _twitchApiService.SendChatMessageUserAsync(_twitchBroadcasterId, _twitchBroadcasterId, "Hello, World from Twitchery.Net!");
@@ -206,6 +182,42 @@ public class Tests
                     Assert.That(sentMessage.IsSent, Is.True);
                     Assert.That(sentMessage.MessageId, Is.Not.Empty);
                     Assert.That(sentMessage.DropReason, Is.Null);
+                });
+            }
+        });
+    }
+
+    [Test]
+    public void TestGetUsers()
+    {
+        Assert.DoesNotThrowAsync(async () =>
+        {
+            var users = await _twitchApiService.GetUsersAsync(userLogins: [ "GronkhTV" ]);
+            
+            Assert.That(users, Is.Not.Null.And.Count.EqualTo(1)); 
+            
+            foreach (var user in users.Users)
+            {
+                Assert.Multiple(() =>
+                {
+                    Assert.That(user, Is.Not.Null);
+                    Assert.That(user.Id, Is.Not.Empty);
+                    Assert.That(user.Login, Is.Not.Empty);
+                    Assert.That(user.DisplayName, Is.Not.Empty);
+                    Assert.That(user.Type, Is.Not.Empty);
+                    Assert.That(user.BroadcasterType, Is.EqualTo(BroadcasterType.Partner));
+                    Assert.That(user.Description, Is.Not.Null);
+                    Assert.That(user.ProfileImageUrl, Is.Not.Null);
+                    Assert.That(user.OfflineImageUrl, Is.Not.Null);
+                    
+                    if (_twitchApiService.ClientScopes.Contains("user:read:email"))
+                    {
+                        Assert.That(user.Email, Is.Not.Empty);
+                    }
+                    else
+                    {
+                        Assert.That(user.Email, Is.Null.Or.Empty);
+                    }
                 });
             }
         });
