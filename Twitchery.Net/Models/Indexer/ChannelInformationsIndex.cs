@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using TwitcheryNet.Attributes;
 using TwitcheryNet.Extensions.TwitchApi;
 using TwitcheryNet.Models.Helix.Channels;
 using TwitcheryNet.Services.Interfaces;
@@ -15,21 +16,19 @@ public class ChannelInformationsIndex
         Twitch = api;
     }
     
-    public ChannelInformation? this[string broadcasterId]
-    {
-        get
-        {
-            var channel = Twitch.GetChannelInformationAsync(broadcasterId).Result;
-            return channel?.ChannelInformations.FirstOrDefault();
-        }
-    }
+    public ChannelInformation? this[string broadcasterId] => GetChannelInformationAsync(broadcasterId).Result;
 
-    public ChannelInformation? this[uint broadcasterId]
+    public ChannelInformation? this[uint broadcasterId] => this[broadcasterId.ToString()];
+    
+    [ApiRoute("GET", "channels")]
+    public async Task<GetChannelInformationResponse?> GetChannelInformationAsync(GetChannelInformationRequest request, CancellationToken cancellationToken = default)
     {
-        get
-        {
-            var channel = Twitch.GetChannelInformationAsync(broadcasterId.ToString()).Result;
-            return channel?.ChannelInformations.FirstOrDefault();
-        }
+        return await Twitch.GetTwitchApiAsync<GetChannelInformationRequest, GetChannelInformationResponse>(request, typeof(ChannelInformationsIndex), cancellationToken);
+    }
+    
+    public async Task<ChannelInformation?> GetChannelInformationAsync(string broadcasterId, CancellationToken cancellationToken = default)
+    {
+        var channel = await GetChannelInformationAsync(new GetChannelInformationRequest(broadcasterId), cancellationToken);
+        return channel?.ChannelInformations.FirstOrDefault();
     }
 }

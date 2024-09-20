@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using TwitcheryNet.Attributes;
 using TwitcheryNet.Extensions.TwitchApi;
+using TwitcheryNet.Models.Helix.Streams;
 using TwitcheryNet.Services.Interfaces;
 using Stream = TwitcheryNet.Models.Helix.Streams.Stream;
 
@@ -15,21 +17,49 @@ public class StreamsIndex
         Twitch = api;
     }
     
-    public Stream? this[string login]
+    public Stream? this[string login] => GetStreamByLoginAsync(login).Result;
+
+    public Stream? this[uint id] => GetStreamByIdAsync(id).Result;
+
+    [ApiRoute("GET", "streams")]
+    public async Task<GetStreamsResponse?> GetStreamsAsync(GetStreamsRequest request, CancellationToken cancellationToken = default)
     {
-        get
-        {
-            var stream = Twitch.GetStreamsAsync(userLogins: [ login ]).Result;
-            return stream?.Streams.FirstOrDefault();
-        }
+        return await Twitch.GetTwitchApiAsync<GetStreamsRequest, GetStreamsResponse>(request, typeof(StreamsIndex), cancellationToken);
     }
     
-    public Stream? this[uint id]
+    public async Task<Stream?> GetStreamByLoginAsync(string login, CancellationToken cancellationToken = default)
     {
-        get
-        {
-            var stream = Twitch.GetStreamsAsync(userIds: [ id.ToString() ]).Result;
-            return stream?.Streams.FirstOrDefault();
-        }
+        var stream = await GetStreamsAsync(new GetStreamsRequest { UserLogin = [ login ]}, cancellationToken);
+        return stream?.Streams.FirstOrDefault();
+    }
+    
+    public async Task<List<Stream>> GetStreamsByLoginAsync(IEnumerable<string> logins, CancellationToken cancellationToken = default)
+    {
+        var stream = await GetStreamsAsync(new GetStreamsRequest { UserLogin = logins.ToList() }, cancellationToken);
+        return stream?.Streams ?? [];
+    }
+    
+    public async Task<Stream?> GetStreamByIdAsync(uint id, CancellationToken cancellationToken = default)
+    {
+        var stream = await GetStreamsAsync(new GetStreamsRequest { UserId = [ id.ToString() ] }, cancellationToken);
+        return stream?.Streams.FirstOrDefault();
+    }
+    
+    public async Task<List<Stream>> GetStreamsByIdAsync(IEnumerable<uint> ids, CancellationToken cancellationToken = default)
+    {
+        var stream = await GetStreamsAsync(new GetStreamsRequest { UserId = ids.Select(id => id.ToString()).ToList() }, cancellationToken);
+        return stream?.Streams ?? [];
+    }
+    
+    public async Task<Stream?> GetStreamByGameIdAsync(uint gameId, CancellationToken cancellationToken = default)
+    {
+        var stream = await GetStreamsAsync(new GetStreamsRequest { GameId = [ gameId.ToString() ] }, cancellationToken);
+        return stream?.Streams.FirstOrDefault();
+    }
+    
+    public async Task<List<Stream>> GetStreamsByGameIdAsync(IEnumerable<uint> gameIds, CancellationToken cancellationToken = default)
+    {
+        var stream = await GetStreamsAsync(new GetStreamsRequest { GameId = gameIds.Select(id => id.ToString()).ToList() }, cancellationToken);
+        return stream?.Streams ?? [];
     }
 }

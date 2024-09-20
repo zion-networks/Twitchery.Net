@@ -81,13 +81,13 @@ public class Tests
     [Test]
     public void TestGetChannelFollowers()
     {
-        Assert.DoesNotThrowAsync(async () =>
+        Assert.DoesNotThrow(() =>
         {
-            var followers = await _twitchApiService.GetAllChannelFollowersAsync(_twitchBroadcasterId);
+            var followers = _twitchApiService.ChannelFollowers[_twitchBroadcasterId];
             
             Assert.That(followers, Is.Not.Null);
             
-            foreach (var follower in followers.Followers)
+            foreach (var follower in followers)
             {
                 Assert.That(follower, Is.Not.Null);
                 Assert.That(follower.UserId, Is.Not.Empty);
@@ -101,53 +101,43 @@ public class Tests
     [Test]
     public void TestGetStreams()
     {
-        Assert.DoesNotThrowAsync(async () =>
+        Assert.DoesNotThrow(() =>
         {
-            var streams = await _twitchApiService.GetStreamsAsync(userLogins: [ "GronkhTV" ]);
+            var stream = _twitchApiService.Streams["GronkhTV"];
             
-            Assert.That(streams, Is.Not.Null);
-            
-            foreach (var stream in streams.Streams)
-            {
-                Assert.That(stream, Is.Not.Null);
-                Assert.That(stream.Id, Is.Not.Empty);
-                Assert.That(stream.UserId, Is.Not.Empty);
-                Assert.That(stream.UserLogin, Is.Not.Empty);
-                Assert.That(stream.UserName, Is.Not.Empty);
-                Assert.That(stream.ViewerCount, Is.Positive.Or.Zero);
-                Assert.That(stream.StartedAt, Is.Not.EqualTo(default(DateTime)));
-                Assert.That(stream.Language, Is.Not.Empty);
-                Assert.That(stream.ThumbnailUrl, Is.Not.Empty);
-                Assert.That(stream.Tags, Is.Not.Count.Negative);
-                Assert.That(stream.TagIds, Is.Not.Count.Negative);
-                Assert.That(stream.GameId, Is.Not.Empty);
-                Assert.That(stream.GameName, Is.Not.Empty);
-                Assert.That(stream.Type, Is.Not.Empty);
-                Assert.That(stream.Title, Is.Not.Empty);
-            }
+            Assert.That(stream, Is.Not.Null);
+            Assert.That(stream.Id, Is.Not.Empty);
+            Assert.That(stream.UserId, Is.Not.Empty);
+            Assert.That(stream.UserLogin, Is.Not.Empty);
+            Assert.That(stream.UserName, Is.Not.Empty);
+            Assert.That(stream.ViewerCount, Is.Positive.Or.Zero);
+            Assert.That(stream.StartedAt, Is.Not.EqualTo(default(DateTime)));
+            Assert.That(stream.Language, Is.Not.Empty);
+            Assert.That(stream.ThumbnailUrl, Is.Not.Empty);
+            Assert.That(stream.Tags, Is.Not.Count.Negative);
+            Assert.That(stream.TagIds, Is.Not.Count.Negative);
+            Assert.That(stream.GameId, Is.Not.Empty);
+            Assert.That(stream.GameName, Is.Not.Empty);
+            Assert.That(stream.Type, Is.Not.Empty);
+            Assert.That(stream.Title, Is.Not.Empty);
         });
     }
     
     [Test]
     public void TestGetChannelInformation()
     {
-        Assert.DoesNotThrowAsync(async () =>
+        Assert.DoesNotThrow(() =>
         {
-            var channelInfos = await _twitchApiService.GetChannelInformationAsync(_twitchBroadcasterId);
+            var channelInfo = _twitchApiService.Channels[_twitchBroadcasterId];
             
-            Assert.That(channelInfos, Is.Not.Null);
-            
-            foreach (var channelInfo in channelInfos.ChannelInformations)
-            {
-                Assert.That(channelInfo, Is.Not.Null);
-                Assert.That(channelInfo.BroadcasterId, Is.Not.Empty);
-                Assert.That(channelInfo.BroadcasterLogin, Is.Not.Empty);
-                Assert.That(channelInfo.BroadcasterName, Is.Not.Empty);
-                Assert.That(channelInfo.BroadcasterLanguage, Is.Not.Empty);
-                Assert.That(channelInfo.GameName, Is.Not.Empty);
-                Assert.That(channelInfo.GameId, Is.Not.Empty);
-                Assert.That(channelInfo.Title, Is.Not.Empty);
-            }
+            Assert.That(channelInfo, Is.Not.Null);
+            Assert.That(channelInfo.BroadcasterId, Is.Not.Empty);
+            Assert.That(channelInfo.BroadcasterLogin, Is.Not.Empty);
+            Assert.That(channelInfo.BroadcasterName, Is.Not.Empty);
+            Assert.That(channelInfo.BroadcasterLanguage, Is.Not.Empty);
+            Assert.That(channelInfo.GameName, Is.Not.Empty);
+            Assert.That(channelInfo.GameId, Is.Not.Empty);
+            Assert.That(channelInfo.Title, Is.Not.Empty);
         });
     }
     
@@ -172,33 +162,27 @@ public class Tests
     [Test]
     public void TestGetUsers()
     {
-        Assert.DoesNotThrowAsync(async () =>
+        Assert.DoesNotThrow(() =>
         {
-            var users = await _twitchApiService.GetUsersAsync(userLogins: [ "GronkhTV" ]);
+            var user = _twitchApiService.Users["GronkhTV"];
             
-            Assert.That(users, Is.Not.Null); 
-            Assert.That(users.Users, Is.Not.Null.And.Count.EqualTo(1)); 
+            Assert.That(user, Is.Not.Null);
+            Assert.That(user.Id, Is.Not.Empty);
+            Assert.That(user.Login, Is.Not.Empty);
+            Assert.That(user.DisplayName, Is.Not.Empty);
+            Assert.That(user.Type, Is.Not.Null);
+            Assert.That(user.BroadcasterType, Is.EqualTo(BroadcasterType.Partner));
+            Assert.That(user.Description, Is.Not.Null);
+            Assert.That(user.ProfileImageUrl, Is.Not.Null);
+            Assert.That(user.OfflineImageUrl, Is.Not.Null);
             
-            foreach (var user in users.Users)
+            if (_twitchApiService.ClientScopes.Contains("user:read:email"))
             {
-                Assert.That(user, Is.Not.Null);
-                Assert.That(user.Id, Is.Not.Empty);
-                Assert.That(user.Login, Is.Not.Empty);
-                Assert.That(user.DisplayName, Is.Not.Empty);
-                Assert.That(user.Type, Is.Not.Null);
-                Assert.That(user.BroadcasterType, Is.EqualTo(BroadcasterType.Partner));
-                Assert.That(user.Description, Is.Not.Null);
-                Assert.That(user.ProfileImageUrl, Is.Not.Null);
-                Assert.That(user.OfflineImageUrl, Is.Not.Null);
-                
-                if (_twitchApiService.ClientScopes.Contains("user:read:email"))
-                {
-                    Assert.That(user.Email, Is.Not.Empty);
-                }
-                else
-                {
-                    Assert.That(user.Email, Is.Null.Or.Empty);
-                }
+                Assert.That(user.Email, Is.Not.Empty);
+            }
+            else
+            {
+                Assert.That(user.Email, Is.Null.Or.Empty);
             }
         });
     }
