@@ -3,10 +3,12 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TwitcheryNet.Attributes;
+using TwitcheryNet.Client;
 using TwitcheryNet.Exceptions;
 using TwitcheryNet.Http;
 using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Helix;
+using TwitcheryNet.Models.Helix.Chat.Messages;
 using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Models.Indexer;
 using TwitcheryNet.Services.Interfaces;
@@ -276,5 +278,10 @@ public class Twitchery : ITwitchery
             .SendAsync<TResponse>(token);
 
         return result.Body;
+    }
+    
+    public Task<WebSocketClient> CreateClientAsync()
+    {
+        return Task.FromResult(new WebSocketClient(this));
     }
 }
