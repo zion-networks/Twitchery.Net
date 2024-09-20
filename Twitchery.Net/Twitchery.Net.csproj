@@ -11,6 +11,7 @@
         <Version>0.0.1-prerelease</Version>
         <Authors>Zion Networks UG (haftungsbeschränkt)</Authors>
         <PackageProjectUrl>https://github.com/zion-networks/Twitchery.Net</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/zion-networks/Twitchery.Net/blob/main/LICENSE</PackageLicenseUrl>
         <RepositoryUrl>https://github.com/zion-networks/Twitchery.Net</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
