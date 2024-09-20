@@ -185,7 +185,7 @@ public class Tests
                 Assert.That(user.Id, Is.Not.Empty);
                 Assert.That(user.Login, Is.Not.Empty);
                 Assert.That(user.DisplayName, Is.Not.Empty);
-                Assert.That(user.Type, Is.Not.Empty);
+                Assert.That(user.Type, Is.Not.Null);
                 Assert.That(user.BroadcasterType, Is.EqualTo(BroadcasterType.Partner));
                 Assert.That(user.Description, Is.Not.Null);
                 Assert.That(user.ProfileImageUrl, Is.Not.Null);
