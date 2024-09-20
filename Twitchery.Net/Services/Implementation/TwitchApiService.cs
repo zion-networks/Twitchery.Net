@@ -115,8 +115,12 @@ public class TwitchApiService : ITwitchApiService
         {
             throw new ApiException("Access Token is required.");
         }
+        
+        var method = callerType
+            .GetMethods()
+            .Where(m => m.Name.Equals(callerMemberName))
+            .FirstOrDefault(m => m.GetCustomAttribute<ApiRoute>() is not null) ?? throw new MissingMethodException(callerType.FullName, callerMemberName);
 
-        var method = callerType.GetMethod(callerMemberName) ?? throw new MissingMethodException(callerType.FullName, callerMemberName);
         var routeAttribute = method.GetCustomAttribute<ApiRoute>() ?? throw new Exception("No ApiRoute Attribute");
         var requiredScopes = routeAttribute.RequiredScopes;
         
