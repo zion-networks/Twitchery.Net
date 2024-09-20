@@ -5,19 +5,19 @@ namespace TwitcheryNet.Models.Helix.Streams;
 public class GetStreamsRequest : IQueryParameters, IWithPagination
 {
     [QueryParameter("user_id", false, true)]
-    public List<string>? UserId { get; set; }
+    public List<string>? UserIds { get; set; }
     
     [QueryParameter("user_login", false, true)]
-    public List<string>? UserLogin { get; set; }
+    public List<string>? UserLogins { get; set; }
     
     [QueryParameter("game_id", false, true)]
-    public List<string>? GameId { get; set; }
+    public List<string>? GameIds { get; set; }
     
     [QueryParameter("type")]
     public string? Type { get; set; }
     
     [QueryParameter("language", false, true)]
-    public List<string>? Language { get; set; }
+    public List<string>? Languages { get; set; }
     
     [QueryParameter("first")]
     public int? First { get; set; }

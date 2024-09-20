@@ -28,25 +28,25 @@ public sealed class UsersIndex
     
     public async Task<User?> GetUserByLoginAsync(string login, CancellationToken cancellationToken = default)
     {
-        var user = await GetUsersAsync(new GetUsersRequest { Login = [ login ] }, cancellationToken);
+        var user = await GetUsersAsync(new GetUsersRequest { Logins = [ login ] }, cancellationToken);
         return user?.Users.FirstOrDefault();
     }
     
     public async Task<List<User>> GetUsersByLoginAsync(IEnumerable<string> logins, CancellationToken cancellationToken = default)
     {
-        var user = await GetUsersAsync(new GetUsersRequest { Login = logins.ToList() }, cancellationToken);
+        var user = await GetUsersAsync(new GetUsersRequest { Logins = logins.ToList() }, cancellationToken);
         return user?.Users ?? [];
     }
     
     public async Task<User?> GetUserByIdAsync(uint id, CancellationToken cancellationToken = default)
     {
-        var user = await GetUsersAsync(new GetUsersRequest { Id = [ id.ToString() ] }, cancellationToken);
+        var user = await GetUsersAsync(new GetUsersRequest { Ids = [ id.ToString() ] }, cancellationToken);
         return user?.Users.FirstOrDefault();
     }
     
     public async Task<List<User>> GetUsersByIdAsync(IEnumerable<uint> ids, CancellationToken cancellationToken = default)
     {
-        var user = await GetUsersAsync(new GetUsersRequest { Id = ids.Select(id => id.ToString()).ToList() }, cancellationToken);
+        var user = await GetUsersAsync(new GetUsersRequest { Ids = ids.Select(id => id.ToString()).ToList() }, cancellationToken);
         return user?.Users ?? [];
     }
 }

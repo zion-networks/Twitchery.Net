@@ -29,37 +29,37 @@ public class StreamsIndex
     
     public async Task<Stream?> GetStreamByLoginAsync(string login, CancellationToken cancellationToken = default)
     {
-        var stream = await GetStreamsAsync(new GetStreamsRequest { UserLogin = [ login ]}, cancellationToken);
+        var stream = await GetStreamsAsync(new GetStreamsRequest { UserLogins = [ login ]}, cancellationToken);
         return stream?.Streams.FirstOrDefault();
     }
     
     public async Task<List<Stream>> GetStreamsByLoginAsync(IEnumerable<string> logins, CancellationToken cancellationToken = default)
     {
-        var stream = await GetStreamsAsync(new GetStreamsRequest { UserLogin = logins.ToList() }, cancellationToken);
+        var stream = await GetStreamsAsync(new GetStreamsRequest { UserLogins = logins.ToList() }, cancellationToken);
         return stream?.Streams ?? [];
     }
     
     public async Task<Stream?> GetStreamByIdAsync(uint id, CancellationToken cancellationToken = default)
     {
-        var stream = await GetStreamsAsync(new GetStreamsRequest { UserId = [ id.ToString() ] }, cancellationToken);
+        var stream = await GetStreamsAsync(new GetStreamsRequest { UserIds = [ id.ToString() ] }, cancellationToken);
         return stream?.Streams.FirstOrDefault();
     }
     
     public async Task<List<Stream>> GetStreamsByIdAsync(IEnumerable<uint> ids, CancellationToken cancellationToken = default)
     {
-        var stream = await GetStreamsAsync(new GetStreamsRequest { UserId = ids.Select(id => id.ToString()).ToList() }, cancellationToken);
+        var stream = await GetStreamsAsync(new GetStreamsRequest { UserIds = ids.Select(id => id.ToString()).ToList() }, cancellationToken);
         return stream?.Streams ?? [];
     }
     
     public async Task<Stream?> GetStreamByGameIdAsync(uint gameId, CancellationToken cancellationToken = default)
     {
-        var stream = await GetStreamsAsync(new GetStreamsRequest { GameId = [ gameId.ToString() ] }, cancellationToken);
+        var stream = await GetStreamsAsync(new GetStreamsRequest { GameIds = [ gameId.ToString() ] }, cancellationToken);
         return stream?.Streams.FirstOrDefault();
     }
     
     public async Task<List<Stream>> GetStreamsByGameIdAsync(IEnumerable<uint> gameIds, CancellationToken cancellationToken = default)
     {
-        var stream = await GetStreamsAsync(new GetStreamsRequest { GameId = gameIds.Select(id => id.ToString()).ToList() }, cancellationToken);
+        var stream = await GetStreamsAsync(new GetStreamsRequest { GameIds = gameIds.Select(id => id.ToString()).ToList() }, cancellationToken);
         return stream?.Streams ?? [];
     }
 }

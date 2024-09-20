@@ -7,9 +7,9 @@ public class GetUsersRequest : IQueryParameters
 {
     [QueryParameter("id", false, true)]
     [MaxLength(100)]
-    public List<string>? Id { get; set; }
+    public List<string>? Ids { get; set; }
     
     [QueryParameter("login", false, true)]
     [MaxLength(100)]
-    public List<string>? Login { get; set; }
+    public List<string>? Logins { get; set; }
 }
