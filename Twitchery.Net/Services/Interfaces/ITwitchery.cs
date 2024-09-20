@@ -16,17 +16,21 @@ public interface ITwitchery
     public StreamsIndex Streams { get; }
     public ChannelInformationsIndex Channels { get; }
     public ChannelFollowersIndex ChannelFollowers { get; }
+    public ChatIndex Chat { get; }
 
     string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null);
     
     Task<bool> UserBrowserAuthAsync(string redirectUri, string[] scopes);
     
-    ApiRoute PreTwitchApiCall(Type callerType, string callerMemberName);
-    
     Task<TResponse?> GetTwitchApiAsync<TQuery, TResponse>(TQuery? query, Type callerType, CancellationToken token = default,
         [CallerMemberName] string? callerMemberName = null)
         where TQuery : class, IQueryParameters
         where TResponse : class;
+
+    Task<TFullResponse> GetTwitchApiAllAsync<TQuery, TResponse, TFullResponse>(TQuery? query, Type callerType, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
+        where TQuery : class, IQueryParameters, IWithPagination
+        where TResponse : class, IHasPagination
+        where TFullResponse : class, IHasTotal, IFullResponse<TResponse>, new();
 
     Task<TResponse?> PostTwitchApiAsync<TQuery, TBody, TResponse>(TQuery? query, TBody? body, Type callerType,
         CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
@@ -38,9 +42,4 @@ public interface ITwitchery
         [CallerMemberName] string? callerMemberName = null)
         where TBody : class
         where TResponse : class;
-
-    Task<TFullResponse> GetTwitchApiAllAsync<TQuery, TResponse, TFullResponse>(TQuery? query, Type callerType, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
-        where TQuery : class, IQueryParameters, IWithPagination
-        where TResponse : class, IHasPagination
-        where TFullResponse : class, IHasTotal, IFullResponse<TResponse>, new();
 }

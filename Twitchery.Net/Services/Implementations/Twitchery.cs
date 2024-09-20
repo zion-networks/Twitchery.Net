@@ -115,7 +115,7 @@ public class Twitchery : ITwitchery
         return true;
     }
 
-    public ApiRoute PreTwitchApiCall(Type callerType, string callerMemberName)
+    private ApiRoute PreTwitchApiCall(Type callerType, string callerMemberName)
     {
         ArgumentException.ThrowIfNullOrEmpty(callerMemberName, nameof(callerMemberName));
         
