@@ -14,12 +14,29 @@ You can check the current implementation status here: [Implementation Status](Ro
 2. Clone the repository: `git clone git@github.com:zion-networks/Twitchery.Net.git`
 3. Build the project: `dotnet build`
 
-### Add dependencies to your project
+### Adjust your .csproj file
 
-1. Twitchery.Net: `dotnet add reference /path/to/Twitchery.Net/Twitchery.Net/bin/Debug/net8.0/TwitcheryNet.dll`
-2. Newtonsoft.Json: `dotnet add package Newtonsoft.Json`
-3. Microsoft.Extensions.Logging: `dotnet add package Microsoft.Extensions.Logging`
-4. Microsoft.Extensions.Logging.Console: `dotnet add package Microsoft.Extensions.Logging.Console`
+Your .csproj file must contain the following lines to be able to use the library:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Project Settings -->
+    
+    <ItemGroup>
+        <Reference Include="TwitcheryNet">
+            <HintPath>\Path\To\TwitcheryNet.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+
+</Project>
+```
 
 ### Example Usage
 
