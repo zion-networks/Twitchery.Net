@@ -2,43 +2,21 @@
 Freshly born library to access Twitch stuff, designed to be simple, efficient and easy to use.
 We want you to be able to create your own Twitch bots, chat clients, stream viewers, and more with ease.
 
-**This library is still under heavy development and not ready for production use.**
+> [!WARNING]  
+>  **This library is still under heavy development and not ready for production use.**
 
 You can check the current implementation status here: [Implementation Status](RouteImplementations.md)
 
 # Using Twitchery.Net: For Developers, Contributors and Testers
 
-### Prerequisites
+## Getting Started
 
-1. Create a Twitch application at [Twitch Developer Console](https://dev.twitch.tv/console/apps)
-2. Clone the repository: `git clone git@github.com:zion-networks/Twitchery.Net.git`
-3. Build the project: `dotnet build`
+1. Create a new Twitch application at [Twitch Developer Console](https://dev.twitch.tv/console/apps)
+2. Create a new .NET8+ project or open an existing one
+3. Install the library from NuGet: `dotnet add package TwitcheryNet --prerelease`
+4. Start coding!
 
-### Adjust your .csproj file
-
-Your .csproj file must contain the following lines to be able to use the library:
-
-```xml
-<Project Sdk="Microsoft.NET.Sdk">
-
-    <!-- Project Settings -->
-    
-    <ItemGroup>
-        <Reference Include="TwitcheryNet">
-            <HintPath>\Path\To\TwitcheryNet.dll</HintPath>
-        </Reference>
-    </ItemGroup>
-    
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    </ItemGroup>
-
-</Project>
-```
-
-### Example Usage
+## Example Usage
 
 ```csharp
 using TwitcheryNet.Services.Implementations;
