@@ -16,7 +16,7 @@ You can check the current implementation status here: [Implementation Status](Ro
 
 ### Add dependencies to your project
 
-1. Twitchery.Net: `dotnet add reference /path/to/Twitchery.Net/Twitchery.Net/bin/Debug/net8.0/Twitchery.Net.dll`
+1. Twitchery.Net: `dotnet add reference /path/to/Twitchery.Net/Twitchery.Net/bin/Debug/net8.0/TwitcheryNet.dll`
 2. Newtonsoft.Json: `dotnet add package Newtonsoft.Json`
 3. Microsoft.Extensions.Logging: `dotnet add package Microsoft.Extensions.Logging`
 4. Microsoft.Extensions.Logging.Console: `dotnet add package Microsoft.Extensions.Logging.Console`
