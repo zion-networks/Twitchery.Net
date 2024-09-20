@@ -7,6 +7,7 @@ using TwitcheryNet.Exceptions;
 using TwitcheryNet.Http;
 using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Helix;
+using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Models.Indexer;
 using TwitcheryNet.Services.Interfaces;
 
@@ -43,7 +44,13 @@ public class TwitchApiService : ITwitchApiService
     public ChannelInformationsIndex Channels => new(this);
     public ChannelFollowersIndex ChannelFollowers => new(this);
     
-    #endregion
+    #endregion Indexed Properties
+
+    #region Shorthand Properties
+
+    public User? Me => Users.GetUsersAsync(new GetUsersRequest()).Result?.Users.FirstOrDefault();
+
+    #endregion Shorthand Properties
     
     public TwitchApiService()
     {
