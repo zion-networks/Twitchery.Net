@@ -10,8 +10,9 @@ You can check the current implementation status here: [Implementation Status](Ro
 
 ### Prerequisites
 
-1. Clone the repository: `git clone git@github.com:zion-networks/Twitchery.Net.git`
-2. Build the project: `dotnet build`
+1. Create a Twitch application at [Twitch Developer Console](https://dev.twitch.tv/console/apps)
+2. Clone the repository: `git clone git@github.com:zion-networks/Twitchery.Net.git`
+3. Build the project: `dotnet build`
 
 ### Add dependencies to your project
 
