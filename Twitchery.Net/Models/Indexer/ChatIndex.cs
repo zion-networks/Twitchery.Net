@@ -38,6 +38,7 @@ public class ChatIndex
         return await Twitch.GetTwitchApiAsync<GetChattersRequest, GetChattersResponse>(request, typeof(ChatIndex), cancellationToken);
     }
     
+    [ApiRoute("GET", "chat/chatters", "moderator:read:chatters")]
     public async Task<GetAllChattersResponse> GetAllChattersAsync(GetChattersRequest request, CancellationToken cancellationToken = default)
     {
         return await Twitch.GetTwitchApiAllAsync<GetChattersRequest, GetChattersResponse, GetAllChattersResponse>(request, typeof(ChatIndex), cancellationToken);
