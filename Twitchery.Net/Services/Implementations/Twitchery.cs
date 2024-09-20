@@ -11,9 +11,9 @@ using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Models.Indexer;
 using TwitcheryNet.Services.Interfaces;
 
-namespace TwitcheryNet.Services.Implementation;
+namespace TwitcheryNet.Services.Implementations;
 
-public class TwitchApiService : ITwitchApiService
+public class Twitchery : ITwitchery
 {
     #region Public Properties
 
@@ -26,7 +26,7 @@ public class TwitchApiService : ITwitchApiService
 
     #region Services
     
-    private ILogger<TwitchApiService> Logger { get; }
+    private ILogger<Twitchery> Logger { get; }
     
     #endregion
     
@@ -52,16 +52,16 @@ public class TwitchApiService : ITwitchApiService
 
     #endregion Shorthand Properties
     
-    public TwitchApiService()
+    public Twitchery()
     {
         Logger = LoggerFactory.Create(config =>
         {
             config.AddConsole();
-        }).CreateLogger<TwitchApiService>();
+        }).CreateLogger<Twitchery>();
     }
 
     [ActivatorUtilitiesConstructor]
-    public TwitchApiService(ILogger<TwitchApiService> logger)
+    public Twitchery(ILogger<Twitchery> logger)
     {
         Logger = logger;
     }
@@ -82,8 +82,13 @@ public class TwitchApiService : ITwitchApiService
         return url;
     }
     
-    public async Task<bool> StartBrowserUserAuthentication(string redirectUri, string[] scopes)
+    public async Task<bool> UserBrowserAuthAsync(string redirectUri, params string[] scopes)
     {
+        if (scopes.Length == 0)
+        {
+            throw new ArgumentException("At least one scope is required.");
+        }
+        
         var state = Guid.NewGuid().ToString();
         var url = GetOAuthUrl(redirectUri, scopes, state);
         

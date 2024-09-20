@@ -8,15 +8,15 @@ namespace TwitcheryNet.Models.Indexer;
 
 public class ChannelFollowersIndex
 {
-    private ITwitchApiService Twitch { get; }
+    private ITwitchery Twitch { get; }
     
     [ActivatorUtilitiesConstructor]
-    public ChannelFollowersIndex(ITwitchApiService api)
+    public ChannelFollowersIndex(ITwitchery api)
     {
         Twitch = api;
     }
     
-    public List<Follower> this[string broadcasterId] => GetChannelFollowersAsync(broadcasterId).Result;
+    public List<Follower> this[string broadcasterId] => GetAllChannelFollowersAsync(broadcasterId).Result;
     
     [ApiRoute("GET", "channels/followers", "moderator:read:followers")]
     public async Task<GetChannelFollowersResponse?> GetChannelFollowersAsync(GetChannelFollowersRequest request, CancellationToken cancellationToken = default)

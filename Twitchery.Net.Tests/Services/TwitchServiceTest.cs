@@ -1,12 +1,12 @@
 using TwitcheryNet.Extensions.TwitchApi;
 using TwitcheryNet.Models.Helix;
-using TwitcheryNet.Services.Implementation;
+using TwitcheryNet.Services.Implementations;
 
 namespace TwitcheryNet.Tests.Services;
 
 public class Tests
 {
-    private TwitchApiService _twitchApiService;
+    private Twitchery _twitchery;
 
     private string _twitchClientId = string.Empty;
     private string _twitchAccessToken = string.Empty;
@@ -26,7 +26,7 @@ public class Tests
         Assert.That(_twitchBroadcasterId, Is.Not.Empty);
         Assert.That(_twitchModeratorId, Is.Not.Empty);
         
-        _twitchApiService = new TwitchApiService
+        _twitchery = new Twitchery
         {
             ClientId = _twitchClientId,
             ClientAccessToken = _twitchAccessToken,
@@ -56,7 +56,7 @@ public class Tests
             }
         };
         
-        Assert.That(_twitchApiService, Is.Not.Null);
+        Assert.That(_twitchery, Is.Not.Null);
     }
 
     [Test]
@@ -64,7 +64,7 @@ public class Tests
     {
         Assert.DoesNotThrowAsync(async () =>
         {
-            var chatters = await _twitchApiService.GetChattersAsync(_twitchBroadcasterId, _twitchModeratorId);
+            var chatters = await _twitchery.GetChattersAsync(_twitchBroadcasterId, _twitchModeratorId);
             
             Assert.That(chatters, Is.Not.Null);
             
@@ -83,7 +83,7 @@ public class Tests
     {
         Assert.DoesNotThrow(() =>
         {
-            var followers = _twitchApiService.ChannelFollowers[_twitchBroadcasterId];
+            var followers = _twitchery.ChannelFollowers[_twitchBroadcasterId];
             
             Assert.That(followers, Is.Not.Null);
             
@@ -103,7 +103,7 @@ public class Tests
     {
         Assert.DoesNotThrow(() =>
         {
-            var stream = _twitchApiService.Streams["GronkhTV"];
+            var stream = _twitchery.Streams["GronkhTV"];
             
             Assert.That(stream, Is.Not.Null);
             Assert.That(stream.Id, Is.Not.Empty);
@@ -128,7 +128,7 @@ public class Tests
     {
         Assert.DoesNotThrow(() =>
         {
-            var channelInfo = _twitchApiService.Channels[_twitchBroadcasterId];
+            var channelInfo = _twitchery.Channels[_twitchBroadcasterId];
             
             Assert.That(channelInfo, Is.Not.Null);
             Assert.That(channelInfo.BroadcasterId, Is.Not.Empty);
@@ -146,7 +146,7 @@ public class Tests
     {
         Assert.DoesNotThrowAsync(async () =>
         {
-            var sentMessageResponse = await _twitchApiService.SendChatMessageUserAsync(_twitchBroadcasterId, _twitchBroadcasterId, "Hello, World from Twitchery.Net!");
+            var sentMessageResponse = await _twitchery.SendChatMessageUserAsync(_twitchBroadcasterId, _twitchBroadcasterId, "Hello, World from Twitchery.Net!");
             
             Assert.That(sentMessageResponse, Is.Not.Null);
             
@@ -164,7 +164,7 @@ public class Tests
     {
         Assert.DoesNotThrow(() =>
         {
-            var user = _twitchApiService.Users["GronkhTV"];
+            var user = _twitchery.Users["GronkhTV"];
             
             Assert.That(user, Is.Not.Null);
             Assert.That(user.Id, Is.Not.Empty);
@@ -176,7 +176,7 @@ public class Tests
             Assert.That(user.ProfileImageUrl, Is.Not.Null);
             Assert.That(user.OfflineImageUrl, Is.Not.Null);
             
-            if (_twitchApiService.ClientScopes.Contains("user:read:email"))
+            if (_twitchery.ClientScopes.Contains("user:read:email"))
             {
                 Assert.That(user.Email, Is.Not.Empty);
             }

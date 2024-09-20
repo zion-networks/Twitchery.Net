@@ -8,7 +8,7 @@ namespace TwitcheryNet.Extensions.TwitchApi;
 public static class TwitchChatApiExtensions
 {
     [ApiRoute("POST", "chat/messages", "user:write:chat")]
-    public static async Task<SendChatMessageResponse?> SendChatMessageUserAsync(this ITwitchApiService service, string broadcasterId, string senderId, string message, string? replyParentMessageId = null, CancellationToken cancellationToken = default)
+    public static async Task<SendChatMessageResponse?> SendChatMessageUserAsync(this ITwitchery service, string broadcasterId, string senderId, string message, string? replyParentMessageId = null, CancellationToken cancellationToken = default)
     {
         var requestBody = new SendChatMessageRequestBody(broadcasterId, senderId, message)
         {
@@ -19,7 +19,7 @@ public static class TwitchChatApiExtensions
     }
     
     [ApiRoute("POST", "chat/messages", "user:bot", "channel:bot")]
-    public static async Task<SendChatMessageResponse?> SendChatMessageAppAsync(this ITwitchApiService service, string broadcasterId, string senderId, string message, string? replyParentMessageId = null, CancellationToken cancellationToken = default)
+    public static async Task<SendChatMessageResponse?> SendChatMessageAppAsync(this ITwitchery service, string broadcasterId, string senderId, string message, string? replyParentMessageId = null, CancellationToken cancellationToken = default)
     {
         var requestBody = new SendChatMessageRequestBody(broadcasterId, senderId, message)
         {
@@ -30,7 +30,7 @@ public static class TwitchChatApiExtensions
     }
     
     [ApiRoute("GET", "chat/chatters", "moderator:read:chatters")]
-    public static async Task<GetChattersResponse?> GetChattersAsync(this ITwitchApiService service, string broadcasterId, string moderatorId, int? first = null, string? after = null, CancellationToken cancellationToken = default)
+    public static async Task<GetChattersResponse?> GetChattersAsync(this ITwitchery service, string broadcasterId, string moderatorId, int? first = null, string? after = null, CancellationToken cancellationToken = default)
     {
         var request = new GetChattersRequest(broadcasterId, moderatorId)
         {

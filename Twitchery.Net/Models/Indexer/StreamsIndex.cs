@@ -9,10 +9,10 @@ namespace TwitcheryNet.Models.Indexer;
 
 public class StreamsIndex
 {
-    private ITwitchApiService Twitch { get; }
+    private ITwitchery Twitch { get; }
     
     [ActivatorUtilitiesConstructor]
-    public StreamsIndex(ITwitchApiService api)
+    public StreamsIndex(ITwitchery api)
     {
         Twitch = api;
     }

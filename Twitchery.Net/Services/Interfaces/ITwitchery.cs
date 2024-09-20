@@ -5,7 +5,7 @@ using TwitcheryNet.Models.Indexer;
 
 namespace TwitcheryNet.Services.Interfaces;
 
-public interface ITwitchApiService
+public interface ITwitchery
 {
     public string? ClientId { get; set; }
     public string? ClientSecret { get; set; }
@@ -19,7 +19,7 @@ public interface ITwitchApiService
 
     string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null);
     
-    Task<bool> StartBrowserUserAuthentication(string redirectUri, string[] scopes);
+    Task<bool> UserBrowserAuthAsync(string redirectUri, string[] scopes);
     
     ApiRoute PreTwitchApiCall(Type callerType, string callerMemberName);
     

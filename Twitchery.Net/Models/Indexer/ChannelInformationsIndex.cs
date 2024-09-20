@@ -7,10 +7,10 @@ namespace TwitcheryNet.Models.Indexer;
 
 public class ChannelInformationsIndex
 {
-    private ITwitchApiService Twitch { get; }
+    private ITwitchery Twitch { get; }
     
     [ActivatorUtilitiesConstructor]
-    public ChannelInformationsIndex(ITwitchApiService api)
+    public ChannelInformationsIndex(ITwitchery api)
     {
         Twitch = api;
     }

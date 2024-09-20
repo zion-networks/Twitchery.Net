@@ -8,10 +8,10 @@ namespace TwitcheryNet.Models.Indexer;
 
 public sealed class UsersIndex
 {
-    private ITwitchApiService Twitch { get; }
+    private ITwitchery Twitch { get; }
     
     [ActivatorUtilitiesConstructor]
-    public UsersIndex(ITwitchApiService api)
+    public UsersIndex(ITwitchery api)
     {
         Twitch = api;
     }
