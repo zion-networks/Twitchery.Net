@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using TwitcheryNet.Attributes;
-using TwitcheryNet.Extensions.TwitchApi;
 using TwitcheryNet.Models.Helix.Channels;
 using TwitcheryNet.Services.Interfaces;
 

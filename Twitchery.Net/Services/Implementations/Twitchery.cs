@@ -41,6 +41,7 @@ public class Twitchery : ITwitchery
 
     public UsersIndex Users => new(this);
     public StreamsIndex Streams => new(this);
+    public ChatIndex Chat => new(this);
     public ChannelInformationsIndex Channels => new(this);
     public ChannelFollowersIndex ChannelFollowers => new(this);
     

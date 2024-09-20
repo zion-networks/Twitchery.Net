@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using TwitcheryNet.Attributes;
-using TwitcheryNet.Extensions.TwitchApi;
 using TwitcheryNet.Models.Helix.Streams;
 using TwitcheryNet.Services.Interfaces;
 using Stream = TwitcheryNet.Models.Helix.Streams.Stream;

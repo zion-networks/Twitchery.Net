@@ -1,5 +1,5 @@
-using TwitcheryNet.Extensions.TwitchApi;
 using TwitcheryNet.Models.Helix;
+using TwitcheryNet.Models.Helix.Chat.Messages;
 using TwitcheryNet.Services.Implementations;
 
 namespace TwitcheryNet.Tests.Services;
@@ -62,13 +62,13 @@ public class Tests
     [Test]
     public void TestGetChatters()
     {
-        Assert.DoesNotThrowAsync(async () =>
+        Assert.DoesNotThrow(() =>
         {
-            var chatters = await _twitchery.GetChattersAsync(_twitchBroadcasterId, _twitchModeratorId);
+            var chatters = _twitchery.Chat[_twitchBroadcasterId, _twitchModeratorId];
             
             Assert.That(chatters, Is.Not.Null);
             
-            foreach (var chatter in chatters.Chatters)
+            foreach (var chatter in chatters)
             {
                 Assert.That(chatter, Is.Not.Null);
                 Assert.That(chatter.UserId, Is.Not.Empty);
@@ -146,7 +146,11 @@ public class Tests
     {
         Assert.DoesNotThrowAsync(async () =>
         {
-            var sentMessageResponse = await _twitchery.SendChatMessageUserAsync(_twitchBroadcasterId, _twitchBroadcasterId, "Hello, World from Twitchery.Net!");
+            var msgRequest = new SendChatMessageRequestBody(
+                _twitchBroadcasterId,
+                _twitchBroadcasterId,
+                "Hello, World! Twitchery.Net successfully passed another test!");
+            var sentMessageResponse = await _twitchery.Chat.SendChatMessageUserAsync(msgRequest);
             
             Assert.That(sentMessageResponse, Is.Not.Null);
             
