@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using TwitcheryNet.Attributes;
-using TwitcheryNet.Extensions.TwitchApi;
 using TwitcheryNet.Models.Helix.Channels;
 using TwitcheryNet.Services.Interfaces;
 
@@ -17,8 +16,6 @@ public class ChannelInformationsIndex
     }
     
     public ChannelInformation? this[string broadcasterId] => GetChannelInformationAsync(broadcasterId).Result;
-
-    public ChannelInformation? this[uint broadcasterId] => this[broadcasterId.ToString()];
     
     [ApiRoute("GET", "channels")]
     public async Task<GetChannelInformationResponse?> GetChannelInformationAsync(GetChannelInformationRequest request, CancellationToken cancellationToken = default)

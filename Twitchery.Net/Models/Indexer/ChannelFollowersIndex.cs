@@ -18,8 +18,6 @@ public class ChannelFollowersIndex
     
     public List<Follower> this[string broadcasterId] => GetChannelFollowersAsync(broadcasterId).Result;
     
-    public List<Follower> this[uint broadcasterId] => GetChannelFollowersAsync(broadcasterId.ToString()).Result;
-    
     [ApiRoute("GET", "channels/followers", "moderator:read:followers")]
     public async Task<GetChannelFollowersResponse?> GetChannelFollowersAsync(GetChannelFollowersRequest request, CancellationToken cancellationToken = default)
     {
