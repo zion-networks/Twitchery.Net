@@ -1,9 +1,15 @@
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using TwitcheryNet.Attributes;
+using TwitcheryNet.Client.EventArgs;
+using TwitcheryNet.Extensions;
 using TwitcheryNet.Models.Client;
+using TwitcheryNet.Models.Helix.Channels;
+using TwitcheryNet.Models.Helix.EventSub.Subscriptions;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Client;
@@ -16,11 +22,13 @@ public class WebSocketClient
     private static readonly TimeSpan KeepAliveMinTimeout = TimeSpan.FromSeconds(KeepAliveMinTimeoutSeconds);
     private static readonly TimeSpan KeepAliveMaxTimeout = TimeSpan.FromSeconds(KeepAliveMaxTimeoutSeconds);
     
+    private string? SessionId { get; set; }
     private string? ReconnectUrl { get; set; }
     
     private ITwitchery Twitch { get; }
     private ILogger<WebSocketClient> Logger { get; }
     private ClientWebSocket? Client { get; set; }
+    private Task? WebSocketTask { get; set; }
     
     public WebSocketClient(ITwitchery twitchery)
     {
@@ -66,6 +74,10 @@ public class WebSocketClient
             {
                 Logger.LogInformation("Closing connection: {Status} {Description}", result.CloseStatus, result.CloseStatusDescription);
                 await Client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", token);
+                
+                WebSocketTask = null;
+                SessionId = null;
+                
                 break;
             }
             
@@ -79,7 +91,7 @@ public class WebSocketClient
     {
         var msg = JsonConvert.DeserializeObject<WebSocketMessage>(message) ?? throw new InvalidOperationException("Failed to deserialize message.");
         var type = msg.Metadata.Type;
-        
+
         switch (type)
         {
             case "session_welcome":
@@ -92,6 +104,10 @@ public class WebSocketClient
             
             case "session_reconnect":
                 await HandleSessionReconnectAsync(msg);
+                break;
+            
+            default:
+                Logger.LogWarning("Unhandled message type: {Type}", type);
                 break;
         }
     }
@@ -121,6 +137,123 @@ public class WebSocketClient
         Logger.LogInformation("Session welcome: {ConnectedAt} {KeepAliveTimeout} {ReconnectUrl}",
             connectedAt, keepAliveTimeout, reconnectUrl);
         
+        SessionId = session.Id;
+        
         return Task.CompletedTask;
+    }
+
+    [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]
+    public async Task SubscribeEventAsync<TSource, TArgs>(TSource source, Enum eventKey, EventHandler<TArgs> handler)
+        where TArgs : EventBaseEventArgs
+        where TSource : class
+    {
+        var keyValue = eventKey.GetValue();
+        ArgumentException.ThrowIfNullOrWhiteSpace(keyValue);
+
+        if (source is Channel channel)
+        {
+            await SubscribeChannelEventAsync(channel, (Events.Channel)eventKey, handler);
+        }
+    }
+
+    private async Task SubscribeChannelEventAsync<TArgs>(Channel channel, Events.Channel eventKey, EventHandler<TArgs> handler)
+        where TArgs : EventBaseEventArgs
+    {
+        var eventKeyValue = eventKey.GetValue();
+        
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventKeyValue, nameof(eventKey));
+
+        switch (eventKey)
+        {
+            case Events.Channel.NewFollower:
+                await SubscribeNewFollowerEventAsync(channel, eventKeyValue);
+                break;
+            
+            case Events.Channel.ChatMessage:
+                await SubscribeChatMessageEventAsync(channel, eventKeyValue);
+                break;
+            
+            default:
+                Logger.LogWarning("Unhandled event key: {EventKey}", eventKey);
+                break;
+        }
+    }
+
+    private async Task SubscribeChatMessageEventAsync(Channel channel, string eventKeyValue)
+    {
+        var userId = Twitch.Me?.Id ?? throw new InvalidOperationException("Missing broadcaster user id.");
+        var body = new CreateEventSubSubscriptionRequestBody(eventKeyValue, "1")
+        {
+            Condition = new EventSubConditions
+            {
+                BroadcasterUserId = channel.BroadcasterId,
+                UserId = userId
+            }
+        };
+        
+        if (WebSocketTask is null)
+        {
+            WebSocketTask = StartAsync();
+        }
+
+        body.Transport.SessionId = await Task.Run(async () =>
+        {
+            while (SessionId is null)
+            {
+                await Task.Delay(100);
+            }
+
+            return SessionId;
+        }, new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token) ?? throw new InvalidOperationException("Failed to get session id.");
+        
+        var response = await Twitch.PostTwitchApiAsync<CreateEventSubSubscriptionRequestBody, CreateEventSubSubscriptionResponseBody>(body, typeof(WebSocketClient), default, nameof(SubscribeEventAsync));
+
+        if (response is null)
+        {
+            Logger.LogError("Failed to subscribe to {EventKey} event.", eventKeyValue);
+        }
+        else
+        {
+            Logger.LogInformation("Subscribed to {EventKey} event at {ConnectedAt}", eventKeyValue, response.ConnectedAt);
+        }
+    }
+
+    private async Task SubscribeNewFollowerEventAsync(Channel channel, string eventKeyValue)
+    {
+        var moderatorId = Twitch.Me?.Id ?? throw new InvalidOperationException("Missing broadcaster user id.");
+        var body = new CreateEventSubSubscriptionRequestBody(eventKeyValue, "2")
+        {
+            Condition = new EventSubConditions
+            {
+                BroadcasterUserId = channel.BroadcasterId,
+                ModeratorUserId = moderatorId
+            }
+        };
+        
+        if (WebSocketTask is null)
+        {
+            WebSocketTask = StartAsync();
+        }
+
+        body.Transport.SessionId = await Task.Run(async () =>
+        {
+            while (SessionId is null)
+            {
+                await Task.Delay(100);
+            }
+
+            return SessionId;
+        }, new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token) ?? throw new InvalidOperationException("Failed to get session id.");
+        
+        var response = await Twitch.PostTwitchApiAsync<CreateEventSubSubscriptionRequestBody, CreateEventSubSubscriptionResponseBody>(body, typeof(WebSocketClient), default, nameof(SubscribeEventAsync));
+
+        if (response is null)
+        {
+            Logger.LogError("Failed to subscribe to {EventKey} event.", eventKeyValue);
+        }
+        else
+        {
+            Logger.LogInformation("Subscribed to {EventKey} event at {ConnectedAt}", eventKeyValue, response.ConnectedAt);
+        }
     }
 }

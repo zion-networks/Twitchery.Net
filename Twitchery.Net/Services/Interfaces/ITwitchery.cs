@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using TwitcheryNet.Models.Helix;
+using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Models.Indexer;
 
 namespace TwitcheryNet.Services.Interfaces;
@@ -15,6 +16,7 @@ public interface ITwitchery
     public StreamsIndex Streams { get; }
     public ChannelsIndex Channels { get; }
     public ChatIndex Chat { get; }
+    User? Me { get; }
 
     string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null);
     

@@ -1,3 +1,5 @@
+using TwitcheryNet.Extensions;
+
 namespace TwitcheryNet.Exceptions;
 
 public class MissingTwitchScopeException : Exception
@@ -18,5 +20,15 @@ public class MissingTwitchScopeException : Exception
         {
             throw new MissingTwitchScopeException(missing.ToArray());
         }
+    }
+    
+    public static void ThrowIfMissing(List<string> scopes, params Enum[] required)
+    {
+        var requiredScopes = required
+            .Select(e => e.GetValue() ?? string.Empty)
+            .Where(e => e.Length > 0)
+            .ToList();
+        
+        ThrowIfMissing(scopes, requiredScopes.ToArray());
     }
 }

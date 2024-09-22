@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TwitcheryNet.Attributes;
+using TwitcheryNet.Client;
 using TwitcheryNet.Exceptions;
 using TwitcheryNet.Http;
 using TwitcheryNet.Misc;
@@ -23,6 +24,12 @@ public class Twitchery : ITwitchery
     public List<string> ClientScopes { get; private set; } = [];
 
     #endregion
+
+    #region Internal Properties
+
+    internal WebSocketClient WebSocketClient { get; set; }
+
+    #endregion Internal Properties
 
     #region Services
     
@@ -69,12 +76,16 @@ public class Twitchery : ITwitchery
         {
             config.AddConsole();
         }).CreateLogger<Twitchery>();
+        
+        WebSocketClient = new(this);
     }
 
     [ActivatorUtilitiesConstructor]
     public Twitchery(ILogger<Twitchery> logger)
     {
         Logger = logger;
+        
+        WebSocketClient = new(this);
     }
     
     public string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null)
@@ -292,6 +303,11 @@ public class Twitchery : ITwitchery
     {
         var type = typeof(TTarget);
         var properties = type.GetProperties();
+
+        if (target is IHasTwitchery twitcheryTarget)
+        {
+            twitcheryTarget.Twitch = this;
+        }
         
         foreach (var prop in properties)
         {
