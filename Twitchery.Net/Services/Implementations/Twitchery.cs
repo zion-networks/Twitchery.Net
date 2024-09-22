@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,13 +44,23 @@ public class Twitchery : ITwitchery
     public StreamsIndex Streams => new(this);
     public ChatIndex Chat => new(this);
     public ChannelsIndex Channels => new(this);
-    public ChannelFollowersIndex ChannelFollowers => new(this);
     
     #endregion Indexed Properties
 
     #region Shorthand Properties
 
-    public User? Me => Users.GetUsersAsync(new GetUsersRequest()).Result?.Users.FirstOrDefault();
+    public User? Me
+    {
+        get
+        {
+            var user = Users.GetUsersAsync(new GetUsersRequest()).Result?.Users.FirstOrDefault();
+            
+            if (user is not null)
+                InjectDataAsync(user).Wait();
+            
+            return user;
+        }
+    }
 
     #endregion Shorthand Properties
     
@@ -175,7 +186,7 @@ public class Twitchery : ITwitchery
 
         return result.Body;
     }
-    
+
     public async Task<TFullResponse> GetTwitchApiAllAsync<TQuery, TResponse, TFullResponse>(TQuery? query, Type callerType, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
         where TQuery : class, IQueryParameters, IWithPagination
         where TResponse : class, IHasPagination
@@ -276,5 +287,125 @@ public class Twitchery : ITwitchery
             .SendAsync<TResponse>(token);
 
         return result.Body;
+    }
+
+    public async Task InjectDataAsync<TTarget>(TTarget target, CancellationToken token = default) where TTarget : class
+    {
+        var type = typeof(TTarget);
+        var properties = type.GetProperties();
+        
+        foreach (var prop in properties)
+        {
+            var injectRouteData = prop.GetCustomAttribute<InjectRouteData>();
+            
+            if (injectRouteData is null)
+                continue;
+
+            var propClass = prop.DeclaringType;
+            var propType = prop.PropertyType;
+            var sourceType = injectRouteData.SourceType;
+            var sourceMethodName = injectRouteData.SourceMethodName;
+
+            if (propClass is null)
+            {
+                Logger.LogWarning($"Injection Data Resolve Warning: Property {prop.Name} has no declaring type.");
+                continue;
+            }
+
+            var targetMethod = sourceType
+                .GetMethods()
+                .Where(m => m.Name.Equals(sourceMethodName))
+                .Where(m =>
+                {
+                    var mParams = m.GetParameters();
+                    return mParams.Length >= 1 && mParams[0].ParameterType == propClass;
+                }).FirstOrDefault();
+
+            if (targetMethod is null)
+            {
+                Logger.LogWarning($"Injection Data Resolve Warning: No method found for {sourceType.FullName}.{sourceMethodName} " +
+                                  $"with parameter {propClass.Name}.");
+                continue;
+            }
+            
+            var instanceProperty = GetType()
+                .GetProperties()
+                .FirstOrDefault(p => p.PropertyType == sourceType);
+
+            if (instanceProperty is null)
+            {
+                Logger.LogWarning("No source provided by Twitchery for requested data type {PropTypeName}.", propType.FullName);
+                continue;
+            }
+            
+            var instanceValue = instanceProperty.GetValue(this);
+            
+            if (instanceValue is null)
+            {
+                Logger.LogWarning($"Injection Data Resolve Warning: No source instance for {sourceType.FullName}.");
+                continue;
+            }
+
+            var propertyTypeAsTask = typeof(Task<>).MakeGenericType(prop.PropertyType); // User => Task<User>
+            var typeMatches = prop.PropertyType == targetMethod.ReturnType; // User == User
+            var typeMatchesGenericTask = propertyTypeAsTask == targetMethod.ReturnType; // Task<User> == Task<User>
+            
+            if (typeMatches is false && typeMatchesGenericTask is false)
+            {
+                throw new TargetInvocationException($"Injection Data Resolve Error: " +
+                                                    $"Invalid data type {prop.PropertyType} for " +
+                                                    $"{propClass.Name}.{prop.Name} - injecting method requires the " +
+                                                    $"property type to be {targetMethod.ReturnType} or " +
+                                                    $"{propertyTypeAsTask}", null);
+            }
+
+            if (targetMethod.ReturnType.IsGenericType &&
+                targetMethod.ReturnType.GetGenericArguments().FirstOrDefault() == typeof(void))
+            {
+                throw new TargetInvocationException($"Injection Data Resolve Error: " +
+                                                    $"Invalid method return type for {sourceType.FullName}.{sourceMethodName} " +
+                                                    $"while resolving {propClass.Name}.{prop.Name}: void is not allowed", null);
+            }
+
+            var targetParams = targetMethod.GetParameters();
+            
+            var invokationParams = new object[targetParams.Length];
+            if (targetParams.Length == 2 && targetParams[1].ParameterType == typeof(CancellationToken))
+            {
+                invokationParams[0] = target;
+                invokationParams[1] = token;
+            }
+            else if (targetParams.Length == 1)
+            {
+                invokationParams[0] = target;
+            }
+            else
+            {
+                throw new TargetInvocationException($"Injection Data Resolve Error: Invalid method signature for " +
+                                                    $"{sourceType.FullName}.{sourceMethodName} while resolving " +
+                                                    $"{propClass.Name}.{prop.Name}", null);
+            }
+
+            var rawResult = targetMethod.Invoke(instanceValue, invokationParams);
+
+            if (rawResult is null)
+            {
+                Logger.LogWarning($"Injection Data Resolve Warning: No data returned for {sourceType.FullName}.{sourceMethodName} " +
+                                  $"while resolving {propClass.Name}.{prop.Name}.");
+                continue;
+            }
+
+            if (targetMethod.ReturnType == propertyTypeAsTask)
+            {
+                var awaitableTask = (dynamic) rawResult;
+                var awaitedResult = await awaitableTask;
+
+                prop.SetValue(target, awaitedResult);
+            }
+            else
+            {
+                prop.SetValue(target, rawResult);
+            }
+        }
     }
 }

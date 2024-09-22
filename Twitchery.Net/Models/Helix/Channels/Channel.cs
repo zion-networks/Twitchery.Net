@@ -1,4 +1,6 @@
 using Newtonsoft.Json;
+using TwitcheryNet.Attributes;
+using TwitcheryNet.Models.Indexer;
 
 namespace TwitcheryNet.Models.Helix.Channels;
 
@@ -37,4 +39,8 @@ public class Channel
     
     [JsonProperty("is_branded_content")]
     public bool IsBrandedContent { get; set; }
+    
+    [JsonIgnore]
+    [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.GetChannelFollowersAsync))]
+    public IAsyncEnumerable<Follower>? Followers { get; set; }
 }

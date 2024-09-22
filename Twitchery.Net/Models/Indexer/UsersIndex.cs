@@ -27,25 +27,45 @@ public sealed class UsersIndex
     
     public async Task<User?> GetUserByLoginAsync(string login, CancellationToken cancellationToken = default)
     {
-        var user = await GetUsersAsync(new GetUsersRequest { Logins = [ login ] }, cancellationToken);
-        return user?.Users.FirstOrDefault();
+        var users = await GetUsersAsync(new GetUsersRequest { Logins = [ login ] }, cancellationToken);
+        var user = users?.Users.FirstOrDefault();
+        
+        if (user is not null)
+            await Twitch.InjectDataAsync(user, cancellationToken);
+        
+        return user;
     }
     
     public async Task<List<User>> GetUsersByLoginAsync(IEnumerable<string> logins, CancellationToken cancellationToken = default)
     {
         var user = await GetUsersAsync(new GetUsersRequest { Logins = logins.ToList() }, cancellationToken);
-        return user?.Users ?? [];
+        var users = user?.Users ?? [];
+        
+        foreach (var u in users)
+            await Twitch.InjectDataAsync(u, cancellationToken);
+        
+        return users;
     }
     
     public async Task<User?> GetUserByIdAsync(uint id, CancellationToken cancellationToken = default)
     {
-        var user = await GetUsersAsync(new GetUsersRequest { Ids = [ id.ToString() ] }, cancellationToken);
-        return user?.Users.FirstOrDefault();
+        var users = await GetUsersAsync(new GetUsersRequest { Ids = [ id.ToString() ] }, cancellationToken);
+        var user = users?.Users.FirstOrDefault();
+        
+        if (user is not null)
+            await Twitch.InjectDataAsync(user, cancellationToken);
+        
+        return user;
     }
     
     public async Task<List<User>> GetUsersByIdAsync(IEnumerable<uint> ids, CancellationToken cancellationToken = default)
     {
         var user = await GetUsersAsync(new GetUsersRequest { Ids = ids.Select(id => id.ToString()).ToList() }, cancellationToken);
-        return user?.Users ?? [];
+        var users = user?.Users ?? [];
+        
+        foreach (var u in users)
+            await Twitch.InjectDataAsync(u, cancellationToken);
+        
+        return users;
     }
 }

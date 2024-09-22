@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using TwitcheryNet.Attributes;
 using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Indexer;
 
@@ -15,7 +14,6 @@ public interface ITwitchery
     public UsersIndex Users { get; }
     public StreamsIndex Streams { get; }
     public ChannelsIndex Channels { get; }
-    public ChannelFollowersIndex ChannelFollowers { get; }
     public ChatIndex Chat { get; }
 
     string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null);
@@ -42,4 +40,6 @@ public interface ITwitchery
         [CallerMemberName] string? callerMemberName = null)
         where TBody : class
         where TResponse : class;
+
+    Task InjectDataAsync<TResponse>(TResponse target, CancellationToken token = default) where TResponse : class;
 }
