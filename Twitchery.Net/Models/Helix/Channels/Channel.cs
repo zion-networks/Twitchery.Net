@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 namespace TwitcheryNet.Models.Helix.Channels;
 
 [JsonObject]
-public class ChannelInformation
+public class Channel
 {
     [JsonProperty("broadcaster_id")]
     public string BroadcasterId { get; set; } = string.Empty;

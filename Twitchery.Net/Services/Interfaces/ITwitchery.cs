@@ -14,7 +14,7 @@ public interface ITwitchery
     
     public UsersIndex Users { get; }
     public StreamsIndex Streams { get; }
-    public ChannelInformationsIndex Channels { get; }
+    public ChannelsIndex Channels { get; }
     public ChannelFollowersIndex ChannelFollowers { get; }
     public ChatIndex Chat { get; }
 
