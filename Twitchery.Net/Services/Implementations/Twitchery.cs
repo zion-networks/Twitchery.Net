@@ -44,6 +44,7 @@ public class Twitchery : ITwitchery
     public StreamsIndex Streams => new(this);
     public ChatIndex Chat => new(this);
     public ChannelsIndex Channels => new(this);
+    public PollsIndex Polls => new(this);
     
     #endregion Indexed Properties
 
@@ -287,6 +288,29 @@ public class Twitchery : ITwitchery
             .SendAsync<TResponse>(token);
 
         return result.Body;
+    }
+    
+    public async Task PostTwitchApiAsync<TQuery>(TQuery? query, Type callerType, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
+        where TQuery : class, IQueryParameters
+    {
+        ArgumentException.ThrowIfNullOrEmpty(callerMemberName, nameof(callerMemberName));
+        
+        var routeAttribute = PreTwitchApiCall(callerType, callerMemberName);
+        var apiFullRoute = $"{TwitchApiEndpoint}{routeAttribute.Route}";
+
+        if (routeAttribute.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase) is false)
+        {
+            throw new ApiException("Only POST requests are supported.");
+        }
+
+        await AsyncHttpClient
+            .StartPost(apiFullRoute)
+            .AddHeader("Authorization", $"Bearer {ClientAccessToken}")
+            .AddHeader("Client-Id", ClientId!)
+            .SetQueryString(query)
+            .RequireStatusCode(routeAttribute.RequiredStatusCode)
+            .Build()
+            .SendAsync(token);
     }
 
     public async Task InjectDataAsync<TTarget>(TTarget target, CancellationToken token = default) where TTarget : class
