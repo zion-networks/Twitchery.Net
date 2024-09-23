@@ -45,7 +45,25 @@ public class WebSocketClient
         Logger = logger;
     }
     
-    public async Task StartAsync(TimeSpan? keepAliveTimeout = null, CancellationToken token = default)
+    public async Task TryStartAsync(TimeSpan? keepAliveTimeout = null, CancellationToken token = default)
+    {
+        if (WebSocketTask is not null)
+            return;
+        
+        WebSocketTask = StartAsync(keepAliveTimeout, token);
+
+        SessionId = await Task.Run(async () =>
+        {
+            while (SessionId is null)
+            {
+                await Task.Delay(100, token);
+            }
+
+            return SessionId;
+        }, new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token);
+    }
+    
+    private async Task StartAsync(TimeSpan? keepAliveTimeout = null, CancellationToken token = default)
     {
         keepAliveTimeout ??= TimeSpan.FromSeconds(30);
         
@@ -106,10 +124,19 @@ public class WebSocketClient
                 await HandleSessionReconnectAsync(msg);
                 break;
             
+            case "notification":
+                await HandleWebSocketNotificationAsync(msg);
+                break;
+            
             default:
                 Logger.LogWarning("Unhandled message type: {Type}", type);
                 break;
         }
+    }
+
+    private async Task HandleWebSocketNotificationAsync(WebSocketMessage msg)
+    {
+        Logger.LogInformation(msg.Metadata.Type);
     }
 
     private async Task HandleSessionReconnectAsync(WebSocketMessage msg)
@@ -141,8 +168,7 @@ public class WebSocketClient
         
         return Task.CompletedTask;
     }
-
-    [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]
+    
     public async Task SubscribeEventAsync<TSource, TArgs>(TSource source, Enum eventKey, EventHandler<TArgs> handler)
         where TArgs : EventBaseEventArgs
         where TSource : class
@@ -150,102 +176,39 @@ public class WebSocketClient
         var keyValue = eventKey.GetValue();
         ArgumentException.ThrowIfNullOrWhiteSpace(keyValue);
 
-        if (source is Channel channel)
+        switch (source)
         {
-            await SubscribeChannelEventAsync(channel, (Events.Channel)eventKey, handler);
+            case Channel channel:
+                await SubscribeChannelEventAsync(channel, (Events.Channel)eventKey, handler);
+                break;
         }
     }
 
-    private async Task SubscribeChannelEventAsync<TArgs>(Channel channel, Events.Channel eventKey, EventHandler<TArgs> handler)
+    [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]
+    public async Task SubscribeChannelEventAsync<TArgs>(Channel channel, Events.Channel eventKey, EventHandler<TArgs> handler)
         where TArgs : EventBaseEventArgs
     {
         var eventKeyValue = eventKey.GetValue();
         
         ArgumentException.ThrowIfNullOrWhiteSpace(eventKeyValue, nameof(eventKey));
+        
+        await TryStartAsync();
 
-        switch (eventKey)
-        {
-            case Events.Channel.NewFollower:
-                await SubscribeNewFollowerEventAsync(channel, eventKeyValue);
-                break;
-            
-            case Events.Channel.ChatMessage:
-                await SubscribeChatMessageEventAsync(channel, eventKeyValue);
-                break;
-            
-            default:
-                Logger.LogWarning("Unhandled event key: {EventKey}", eventKey);
-                break;
-        }
-    }
-
-    private async Task SubscribeChatMessageEventAsync(Channel channel, string eventKeyValue)
-    {
+        var version = eventKey.GetVersion() ?? throw new InvalidOperationException("Missing event version.");
         var userId = Twitch.Me?.Id ?? throw new InvalidOperationException("Missing broadcaster user id.");
-        var body = new CreateEventSubSubscriptionRequestBody(eventKeyValue, "1")
+        var eventSubConditions = new EventSubConditions(userId, userId, userId);
+        
+        var body = new CreateEventSubSubscriptionRequestBody(eventKeyValue, version)
         {
-            Condition = new EventSubConditions
-            {
-                BroadcasterUserId = channel.BroadcasterId,
-                UserId = userId
-            }
+            Condition = eventSubConditions
         };
+
+        if (string.IsNullOrWhiteSpace(SessionId))
+            throw new InvalidOperationException("Failed to start WebSocket client.");
+
+        body.Transport.SessionId = SessionId;
         
-        if (WebSocketTask is null)
-        {
-            WebSocketTask = StartAsync();
-        }
-
-        body.Transport.SessionId = await Task.Run(async () =>
-        {
-            while (SessionId is null)
-            {
-                await Task.Delay(100);
-            }
-
-            return SessionId;
-        }, new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token) ?? throw new InvalidOperationException("Failed to get session id.");
-        
-        var response = await Twitch.PostTwitchApiAsync<CreateEventSubSubscriptionRequestBody, CreateEventSubSubscriptionResponseBody>(body, typeof(WebSocketClient), default, nameof(SubscribeEventAsync));
-
-        if (response is null)
-        {
-            Logger.LogError("Failed to subscribe to {EventKey} event.", eventKeyValue);
-        }
-        else
-        {
-            Logger.LogInformation("Subscribed to {EventKey} event at {ConnectedAt}", eventKeyValue, response.ConnectedAt);
-        }
-    }
-
-    private async Task SubscribeNewFollowerEventAsync(Channel channel, string eventKeyValue)
-    {
-        var moderatorId = Twitch.Me?.Id ?? throw new InvalidOperationException("Missing broadcaster user id.");
-        var body = new CreateEventSubSubscriptionRequestBody(eventKeyValue, "2")
-        {
-            Condition = new EventSubConditions
-            {
-                BroadcasterUserId = channel.BroadcasterId,
-                ModeratorUserId = moderatorId
-            }
-        };
-        
-        if (WebSocketTask is null)
-        {
-            WebSocketTask = StartAsync();
-        }
-
-        body.Transport.SessionId = await Task.Run(async () =>
-        {
-            while (SessionId is null)
-            {
-                await Task.Delay(100);
-            }
-
-            return SessionId;
-        }, new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token) ?? throw new InvalidOperationException("Failed to get session id.");
-        
-        var response = await Twitch.PostTwitchApiAsync<CreateEventSubSubscriptionRequestBody, CreateEventSubSubscriptionResponseBody>(body, typeof(WebSocketClient), default, nameof(SubscribeEventAsync));
+        var response = await Twitch.PostTwitchApiAsync<CreateEventSubSubscriptionRequestBody, CreateEventSubSubscriptionResponseBody>(body, typeof(WebSocketClient));
 
         if (response is null)
         {

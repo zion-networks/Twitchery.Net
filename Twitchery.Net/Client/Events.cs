@@ -6,8 +6,8 @@ public class Events
 {
     public enum Channel
     {
-        [Value("channel.follow")] NewFollower,
-        [Value("channel.subscribe")] NewSubscriber,
-        [Value("channel.chat.message")] ChatMessage,
+        [Value("channel.follow"), Version("2")] NewFollower,
+        [Value("channel.subscribe"), Version("1")] NewSubscriber,
+        [Value("channel.chat.message"), Version("1")] ChatMessage,
     }
 }

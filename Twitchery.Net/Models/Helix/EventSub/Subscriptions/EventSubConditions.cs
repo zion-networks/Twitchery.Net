@@ -13,4 +13,11 @@ public class EventSubConditions
     
     [JsonProperty("user_id")]
     public string? UserId { get; set; }
+    
+    public EventSubConditions(string? broadcasterUserId = null, string? moderatorUserId = null, string? userId = null)
+    {
+        BroadcasterUserId = broadcasterUserId;
+        ModeratorUserId = moderatorUserId;
+        UserId = userId;
+    }
 }

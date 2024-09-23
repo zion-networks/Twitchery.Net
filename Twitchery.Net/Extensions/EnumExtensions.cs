@@ -12,4 +12,12 @@ public static class EnumExtensions
         var attribute = member?.GetCustomAttribute<ValueAttribute>();
         return attribute?.Value;
     }
+
+    public static string? GetVersion(this Enum e)
+    {
+        var type = e.GetType();
+        var member = type.GetMember(e.ToString()).FirstOrDefault();
+        var attribute = member?.GetCustomAttribute<VersionAttribute>();
+        return attribute?.Version;
+    }
 }
