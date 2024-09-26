@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Web;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TwitcheryNet.Extensions;
 using TwitcheryNet.Models.Helix;
@@ -178,7 +179,7 @@ public class HttpRequestBuilder
     {
         if (Request is null)
             throw new InvalidOperationException("Request is not built.");
-        
+
         switch (Method.Method)
         {
             case "GET":

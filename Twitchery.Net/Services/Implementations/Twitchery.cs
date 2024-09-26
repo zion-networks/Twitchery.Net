@@ -11,6 +11,8 @@ using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Models.Indexer;
+using TwitcheryNet.Net;
+using TwitcheryNet.Net.EventSub;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Services.Implementations;
@@ -25,6 +27,12 @@ public class Twitchery : ITwitchery
     public List<string> ClientScopes { get; private set; } = [];
 
     #endregion
+
+    #region Internal Properties
+
+    internal EventSubClient EventSubClient { get; set; }
+
+    #endregion Internal Properties
 
     #region Services
     
@@ -62,12 +70,16 @@ public class Twitchery : ITwitchery
         {
             config.AddConsole().SetMinimumLevel(LogLevel.Debug);
         }).CreateLogger<Twitchery>();
+        
+        EventSubClient = new(this);
     }
 
     [ActivatorUtilitiesConstructor]
     public Twitchery(ILogger<Twitchery> logger)
     {
         Logger = logger;
+        
+        EventSubClient = new(this);
     }
     
     public string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null)
@@ -204,7 +216,7 @@ public class Twitchery : ITwitchery
 
         return result.Body;
     }
-
+    
     public async Task<TFullResponse> GetTwitchApiAllAsync<TQuery, TResponse, TFullResponse>(TQuery? query, Type callerType, CancellationToken token = default, [CallerMemberName] string? callerMemberName = null)
         where TQuery : class, IQueryParameters, IWithPagination
         where TResponse : class, IHasPagination
@@ -324,6 +336,11 @@ public class Twitchery : ITwitchery
     {
         var type = typeof(TTarget);
         var properties = type.GetProperties();
+
+        if (target is IHasTwitchery twitcheryTarget)
+        {
+            twitcheryTarget.Twitch = this;
+        }
         
         foreach (var prop in properties)
         {

@@ -1,7 +1,5 @@
-using System.Collections;
 using System.Diagnostics;
 using TwitcheryNet.Models.Helix;
-using TwitcheryNet.Models.Helix.Chat.Messages;
 using TwitcheryNet.Services.Implementations;
 
 namespace TwitcheryNet.Tests.Services;
