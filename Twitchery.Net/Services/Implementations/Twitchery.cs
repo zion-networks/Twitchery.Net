@@ -11,7 +11,6 @@ using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Models.Indexer;
-using TwitcheryNet.Net;
 using TwitcheryNet.Net.EventSub;
 using TwitcheryNet.Services.Interfaces;
 

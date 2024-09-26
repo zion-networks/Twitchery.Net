@@ -1,4 +1,3 @@
-using System.Net;
 using Newtonsoft.Json;
 
 namespace TwitcheryNet.Http;

@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using System.Web;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TwitcheryNet.Extensions;
 using TwitcheryNet.Models.Helix;
