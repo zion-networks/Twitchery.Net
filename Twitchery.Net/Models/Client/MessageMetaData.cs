@@ -13,4 +13,10 @@ public class MessageMetaData
     
     [JsonProperty("message_timestamp")]
     public DateTime Timestamp { get; set; }
+    
+    [JsonProperty("subscription_type")]
+    public string SubscriptionType { get; set; } = string.Empty;
+    
+    [JsonProperty("subscription_version")]
+    public string SubscriptionVersion { get; set; } = string.Empty;
 }

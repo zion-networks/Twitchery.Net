@@ -1,16 +1,17 @@
 using Newtonsoft.Json;
 using TwitcheryNet.Attributes;
-using TwitcheryNet.Client;
-using TwitcheryNet.Client.EventArgs;
 using TwitcheryNet.Exceptions;
+using TwitcheryNet.Models.Helix.EventSub.Subscriptions;
 using TwitcheryNet.Models.Indexer;
+using TwitcheryNet.Net.EventSub;
+using TwitcheryNet.Net.EventSub.EventArgs.Channel;
 using TwitcheryNet.Services.Implementations;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Models.Helix.Channels;
 
 [JsonObject]
-public class Channel : IHasTwitchery
+public class Channel : IHasTwitchery, IConditional
 {
     public ITwitchery? Twitch { get; set; }
     
@@ -50,28 +51,18 @@ public class Channel : IHasTwitchery
     [JsonIgnore]
     [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.GetChannelFollowersAsync))]
     public IAsyncEnumerable<Follower>? Followers { get; set; }
-    
-    public event EventHandler<NewFollowerEventArgs>? NewFollower
+
+    public EventSubCondition ToCondition()
     {
-        add
+        return new EventSubCondition
         {
-            if (value is null)
-                return;
-            
-            if (Twitch is Twitchery twitchery)
-            {
-                MissingTwitchScopeException.ThrowIfMissing(twitchery.ClientScopes, "moderator:read:followers");
-                
-                twitchery.WebSocketClient.SubscribeEventAsync(this, Events.Channel.NewFollower, value).Wait();
-            }
-        }
-        remove
-        {
-            
-        }
+            UserId = Twitch?.Me?.Id,
+            BroadcasterUserId = BroadcasterId
+        };
     }
     
-    public event EventHandler<ChatMessageEventArgs>? ChatMessage
+    private event EventHandler<ChatMessageNotification>? _chatMessage; 
+    public event EventHandler<ChatMessageNotification>? ChatMessage
     {
         add
         {
@@ -82,12 +73,18 @@ public class Channel : IHasTwitchery
             {
                 MissingTwitchScopeException.ThrowIfMissing(twitchery.ClientScopes, "chat:read");
                 
-                twitchery.WebSocketClient.SubscribeEventAsync(this, Events.Channel.ChatMessage, value).Wait();
+                twitchery.EventSubClient.SubscribeAsync(this, EventSubTypes.Channel.ChatMessage, args =>
+                {
+                    if (args.Event is ChatMessageNotification chatMessage)
+                        _chatMessage?.Invoke(twitchery.EventSubClient, chatMessage);
+                }).Wait();
             }
+            
+            _chatMessage += value;
         }
         remove
         {
-            
+            _chatMessage -= value;
         }
-    } 
+    }
 }

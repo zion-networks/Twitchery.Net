@@ -3,13 +3,15 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TwitcheryNet.Attributes;
-using TwitcheryNet.Client;
 using TwitcheryNet.Exceptions;
+using TwitcheryNet.Extensions;
 using TwitcheryNet.Http;
 using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Models.Indexer;
+using TwitcheryNet.Net;
+using TwitcheryNet.Net.EventSub;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Services.Implementations;
@@ -27,7 +29,7 @@ public class Twitchery : ITwitchery
 
     #region Internal Properties
 
-    internal WebSocketClient WebSocketClient { get; set; }
+    internal EventSubClient EventSubClient { get; set; }
 
     #endregion Internal Properties
 
@@ -74,10 +76,10 @@ public class Twitchery : ITwitchery
     {
         Logger = LoggerFactory.Create(config =>
         {
-            config.AddConsole();
+            config.AddConsole().SetMinimumLevel(LogLevel.Debug);
         }).CreateLogger<Twitchery>();
         
-        WebSocketClient = new(this);
+        EventSubClient = new(this);
     }
 
     [ActivatorUtilitiesConstructor]
@@ -85,7 +87,7 @@ public class Twitchery : ITwitchery
     {
         Logger = logger;
         
-        WebSocketClient = new(this);
+        EventSubClient = new(this);
     }
     
     public string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null)
@@ -184,7 +186,7 @@ public class Twitchery : ITwitchery
         {
             throw new ApiException("Only GET requests are supported.");
         }
-
+        
         var result = await AsyncHttpClient
             .StartGet(apiFullRoute)
             .AddHeader("Authorization", $"Bearer {ClientAccessToken}")

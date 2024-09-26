@@ -1,8 +1,8 @@
 using TwitcheryNet.Attributes;
 
-namespace TwitcheryNet.Client;
+namespace TwitcheryNet.Net.EventSub;
 
-public class Events
+public class EventSubTypes
 {
     public enum Channel
     {

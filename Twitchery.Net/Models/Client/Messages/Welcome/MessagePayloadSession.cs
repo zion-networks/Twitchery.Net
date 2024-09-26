@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace TwitcheryNet.Models.Client;
+namespace TwitcheryNet.Models.Client.Messages.Welcome;
 
 [JsonObject]
 public class MessagePayloadSession

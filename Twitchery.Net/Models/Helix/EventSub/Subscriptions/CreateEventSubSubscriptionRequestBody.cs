@@ -12,7 +12,7 @@ public class CreateEventSubSubscriptionRequestBody
     public string Version { get; set; }
     
     [JsonProperty("condition")]
-    public EventSubConditions Condition { get; set; } = new();
+    public EventSubCondition Condition { get; set; } = new();
     
     [JsonProperty("transport")]
     public EventSubTransport Transport { get; set; } = new();

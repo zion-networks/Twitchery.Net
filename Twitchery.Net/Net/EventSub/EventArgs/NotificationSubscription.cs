@@ -1,9 +1,10 @@
 using Newtonsoft.Json;
+using TwitcheryNet.Models.Helix.EventSub.Subscriptions;
 
-namespace TwitcheryNet.Models.Helix.EventSub.Subscriptions;
+namespace TwitcheryNet.Net.EventSub.EventArgs;
 
 [JsonObject]
-public class CreateEventSubSubscriptionData
+public class NotificationSubscription
 {
     [JsonProperty("id")]
     public string Id { get; set; } = string.Empty;
@@ -20,11 +21,11 @@ public class CreateEventSubSubscriptionData
     [JsonProperty("condition")]
     public EventSubCondition Condition { get; set; } = new();
     
-    [JsonProperty("created_at")]
-    public DateTime CreatedAt { get; set; }
-    
     [JsonProperty("transport")]
     public EventSubTransport Transport { get; set; } = new();
+    
+    [JsonProperty("created_at")]
+    public DateTime CreatedAt { get; set; }
     
     [JsonProperty("cost")]
     public int Cost { get; set; }
