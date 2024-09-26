@@ -1,4 +1,5 @@
 using TwitcheryNet.Attributes;
+using TwitcheryNet.Models.Indexer;
 
 namespace TwitcheryNet.Models.Helix.Channels;
 

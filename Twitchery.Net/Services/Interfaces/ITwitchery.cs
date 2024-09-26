@@ -16,7 +16,7 @@ public interface ITwitchery
     public StreamsIndex Streams { get; }
     public ChannelsIndex Channels { get; }
     public ChatIndex Chat { get; }
-    User? Me { get; }
+    public User? Me { get; }
 
     string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null);
     
