@@ -22,7 +22,17 @@ public sealed class UsersIndex
     [ApiRoute("GET", "users")]
     public async Task<GetUsersResponse?> GetUsersAsync(GetUsersRequest request, CancellationToken cancellationToken = default)
     {
-        return await Twitch.GetTwitchApiAsync<GetUsersRequest, GetUsersResponse>(request, typeof(UsersIndex), cancellationToken);
+        var users = await Twitch.GetTwitchApiAsync<GetUsersRequest, GetUsersResponse>(request, typeof(UsersIndex), cancellationToken);
+
+        if (users is null)
+            return null;
+        
+        foreach (var user in users.Users)
+        {
+            await Twitch.InjectDataAsync(user, cancellationToken);
+        }
+        
+        return users;
     }
     
     public async Task<User?> GetUserByLoginAsync(string login, CancellationToken cancellationToken = default)

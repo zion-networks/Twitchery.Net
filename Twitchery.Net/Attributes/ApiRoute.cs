@@ -6,14 +6,14 @@ namespace TwitcheryNet.Attributes;
 public class ApiRoute : Attribute
 {
     public string HttpMethod { get; }
-    public string Route { get; }
+    public string Path { get; }
     public string[] RequiredScopes { get; }
     public HttpStatusCode RequiredStatusCode { get; set; } = HttpStatusCode.OK;
     
-    public ApiRoute(string httpMethod, string route, params string[] requiredScopes)
+    public ApiRoute(string httpMethod, string path, params string[] requiredScopes)
     {
         HttpMethod = httpMethod;
-        Route = route;
+        Path = path;
         RequiredScopes = requiredScopes;
     }
 }

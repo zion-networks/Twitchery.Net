@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using TwitcheryNet.Attributes;
+using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Channels;
 using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Services.Interfaces;
@@ -53,6 +54,7 @@ public class ChannelsIndex
         return await Twitch.GetTwitchApiAsync<GetChannelFollowersRequest, GetChannelFollowersResponse>(request, typeof(ChannelsIndex), cancellationToken);
     }
     
+    [ApiRules(RouteRules.RequiresOwner | RouteRules.RequiresModerator)]
     [ApiRoute("GET", "channels/followers", "moderator:read:followers")]
     public async Task<GetAllChannelFollowersResponse> GetAllChannelFollowersAsync(GetChannelFollowersRequest request, CancellationToken cancellationToken = default)
     {
@@ -91,5 +93,15 @@ public class ChannelsIndex
     {
         var followers = await GetAllChannelFollowersAsync(new GetChannelFollowersRequest(broadcasterId), cancellationToken);
         return followers.Followers;
+    }
+    
+    public Task<bool> IsOwnerAsync(string broadcasterId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Twitch.Me?.Channel?.BroadcasterId == broadcasterId);
+    }
+    
+    public Task<bool> IsOwnerAsync(Channel channel, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Twitch.Me?.Channel?.BroadcasterId == channel.BroadcasterId);
     }
 }

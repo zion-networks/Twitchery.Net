@@ -41,6 +41,14 @@ public class Channel
     public bool IsBrandedContent { get; set; }
     
     [JsonIgnore]
+    [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.IsOwnerAsync))]
+    public bool IsOwner { get; set; }
+    
+    [JsonIgnore]
+    [InjectRouteData(typeof(ModerationIndex), nameof(ModerationIndex.IsModeratorAsync))]
+    public bool IsModerator { get; set; }
+    
+    [JsonIgnore]
     [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.GetChannelFollowersAsync))]
     public IAsyncEnumerable<Follower>? Followers { get; set; }
 }
