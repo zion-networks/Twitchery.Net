@@ -46,14 +46,20 @@ public class Tests
         var machine = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Machine);
         
         if (string.IsNullOrWhiteSpace(process) is false)
+        {
             return process;
-        
+        }
+
         if (string.IsNullOrWhiteSpace(user) is false)
+        {
             return user;
+        }
 
         if (string.IsNullOrWhiteSpace(machine) is false)
+        {
             return machine;
-        
+        }
+
         return null;
     }
     

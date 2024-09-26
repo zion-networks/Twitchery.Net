@@ -203,8 +203,10 @@ public class EventSubClient
         where T : class, IConditional
     {
         if (Client.IsConnected is false)
+        {
             await StartAsync();
-        
+        }
+
         var eventType = eventKey.GetValue();
         var eventVersion = eventKey.GetVersion();
         

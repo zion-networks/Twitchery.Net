@@ -92,8 +92,10 @@ public class Twitchery : ITwitchery
                $"&scope={scope}";
         
         if (state is not null)
+        {
             url += $"&state={state}";
-        
+        }
+
         return url;
     }
     
@@ -152,13 +154,17 @@ public class Twitchery : ITwitchery
             .FirstOrDefault(m => m.HasCustomAttribute<ApiRoute>());
 
         if (apiMethod is null)
+        {
             throw new MissingMethodException(callerType.FullName, callerMemberName);
+        }
 
         var apiRoute = apiMethod.GetCustomAttribute<ApiRoute>();
         var apiRules = apiMethod.GetCustomAttribute<ApiRules>();
         
         if (apiRoute is null)
+        {
             throw new MissingAttributeException<ApiRoute>(apiMethod);
+        }
 
         var route = new Route(TwitchApiEndpoint, apiRoute, apiMethod, apiRules);
         
@@ -178,7 +184,9 @@ public class Twitchery : ITwitchery
         foreach (var scope in route.ApiRoute.RequiredScopes)
         {
             if (ClientScopes.Contains(scope) is false)
+            {
                 results.Add(new ValidationResult($"Missing required scope {scope} on route {route.ApiRoute.Path}"));
+            }
         }
 
         if (Uri.IsWellFormedUriString(route.FullUrl, UriKind.Absolute) is false)
@@ -202,7 +210,9 @@ public class Twitchery : ITwitchery
 
         var validationResults = ValidateRoute(route);
         if (validationResults.Count != 0)
+        {
             throw new ApiException($"Route validation failed:\n{string.Join("\n- ", validationResults)}");
+        }
 
         var result = await AsyncHttpClient
             .StartGet(route.FullUrl)
@@ -228,15 +238,19 @@ public class Twitchery : ITwitchery
         
         var validationResults = ValidateRoute(route);
         if (validationResults.Count != 0)
+        {
             throw new ApiException($"Route validation failed:\n{string.Join("\n- ", validationResults)}");
-        
+        }
+
         var responses = new TFullResponse();
         string? after = null;
         do
         {
             if (query is IWithPagination pagination)
+            {
                 pagination.After = after;
-            
+            }
+
             var result = await AsyncHttpClient
                 .StartGet(route.FullUrl)
                 .AddHeader("Authorization", $"Bearer {ClientAccessToken}")
@@ -249,8 +263,10 @@ public class Twitchery : ITwitchery
             var response = result.Body;
             
             if (response is null)
+            {
                 continue;
-            
+            }
+
             responses.Add(response);
             
             after = response.Pagination.Cursor;
@@ -271,7 +287,9 @@ public class Twitchery : ITwitchery
         
         var validationResults = ValidateRoute(route);
         if (validationResults.Count != 0)
+        {
             throw new ApiException($"Route validation failed:\n{string.Join("\n- ", validationResults)}");
+        }
 
         var result = await AsyncHttpClient
             .StartPost(route.FullUrl)
@@ -296,7 +314,9 @@ public class Twitchery : ITwitchery
         
         var validationResults = ValidateRoute(route);
         if (validationResults.Count != 0)
+        {
             throw new ApiException($"Route validation failed:\n{string.Join("\n- ", validationResults)}");
+        }
 
         var result = await AsyncHttpClient
             .StartPost(route.FullUrl)
@@ -319,7 +339,9 @@ public class Twitchery : ITwitchery
         
         var validationResults = ValidateRoute(route);
         if (validationResults.Count != 0)
+        {
             throw new ApiException($"Route validation failed:\n{string.Join("\n- ", validationResults)}");
+        }
 
         await AsyncHttpClient
             .StartPost(route.FullUrl)
@@ -346,7 +368,9 @@ public class Twitchery : ITwitchery
             var injectRouteData = prop.GetCustomAttribute<InjectRouteData>();
             
             if (injectRouteData is null)
+            {
                 continue;
+            }
 
             var propClass = prop.DeclaringType;
             var propType = prop.PropertyType;

@@ -75,8 +75,10 @@ public class Channel : IHasTwitchery, IConditional
         add
         {
             if (value is null)
+            {
                 return;
-            
+            }
+
             if (Twitch is Twitchery twitchery)
             {
                 MissingTwitchScopeException.ThrowIfMissing(twitchery.ClientScopes, "chat:read");
@@ -84,7 +86,9 @@ public class Channel : IHasTwitchery, IConditional
                 twitchery.EventSubClient.SubscribeAsync(this, EventSubTypes.Channel.ChatMessage, args =>
                 {
                     if (args.Event is ChatMessageNotification chatMessage)
+                    {
                         _chatMessage?.Invoke(twitchery.EventSubClient, chatMessage);
+                    }
                 }).Wait();
             }
             

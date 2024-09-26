@@ -13,7 +13,9 @@ public class OAuthHttpServer
     public OAuthHttpServer(string prefix, string state)
     {
         if (HttpListener.IsSupported is false)
+        {
             throw new NotSupportedException("HttpListener is not supported on this platform.");
+        }
 
         Prefix = prefix;
         State = state;
@@ -36,10 +38,14 @@ public class OAuthHttpServer
             var req = ctx.Request;
             
             if (req.HttpMethod != "GET" && req.HttpMethod != "POST")
+            {
                 continue;
+            }
 
             if (req.Url is null)
+            {
                 continue;
+            }
 
             switch (req.Url.AbsolutePath)
             {
