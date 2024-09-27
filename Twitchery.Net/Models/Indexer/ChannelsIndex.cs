@@ -32,8 +32,10 @@ public class ChannelsIndex
         var channel = channels?.ChannelInformations.FirstOrDefault();
 
         if (channel is not null)
+        {
             await Twitch.InjectDataAsync(channel, cancellationToken);
-        
+        }
+
         return channel;
     }
     
@@ -43,8 +45,10 @@ public class ChannelsIndex
         var channel = channels?.ChannelInformations.FirstOrDefault();
 
         if (channel is not null)
+        {
             await Twitch.InjectDataAsync(channel, cancellationToken);
-        
+        }
+
         return channel;
     }
     
@@ -80,8 +84,10 @@ public class ChannelsIndex
             var followers = await GetChannelFollowersAsync(request, cancellationToken);
             
             if (followers is null)
+            {
                 yield break;
-            
+            }
+
             foreach (var follower in followers.Followers)
                 yield return follower;
             

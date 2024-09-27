@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using System.Web;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TwitcheryNet.Extensions;
 using TwitcheryNet.Models.Helix;
@@ -51,8 +50,10 @@ public class HttpRequestBuilder
     public HttpRequestBuilder AddHeaderOptional(string? key, string? value)
     {
         if (key is not null && value is not null)
+        {
             Headers[key] = value;
-        
+        }
+
         return this;
     }
     
@@ -65,16 +66,20 @@ public class HttpRequestBuilder
     public HttpRequestBuilder AddQueryParameterOptional(string? key, string? value)
     {
         if (key is not null && value is not null)
+        {
             QueryParameters[key] = value;
-        
+        }
+
         return this;
     }
     
     public HttpRequestBuilder SetQueryString<TQuery>(TQuery? query) where TQuery : class, IQueryParameters
     {
         if (query is null)
+        {
             return this;
-        
+        }
+
         Uri = new UriBuilder(Uri)
         {
             Query = query.ToQueryString()
@@ -92,8 +97,10 @@ public class HttpRequestBuilder
     public HttpRequestBuilder SetBody<T>(T? body) where T : class
     {
         if (body is null)
+        {
             return this;
-        
+        }
+
         Body = JsonConvert.SerializeObject(body, Formatting.None);
         return this;
     }
@@ -143,15 +150,19 @@ public class HttpRequestBuilder
     public async Task<AsyncHttpResponse> SendAsync(CancellationToken cancellationToken = default)
     {
         if (Request is null)
+        {
             throw new InvalidOperationException("Request is not built.");
-        
+        }
+
         switch (Method.Method)
         {
             case "GET":
                 var getResult = await AsyncHttpClient.GetAsync(this, cancellationToken);
 
                 if (RequiredStatusCode is not null && getResult.Response.StatusCode != RequiredStatusCode)
+                {
                     throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {getResult.Response.StatusCode} with the following body: {getResult.RawBody}");
+                }
 
                 return getResult;
             
@@ -159,8 +170,10 @@ public class HttpRequestBuilder
                 var postResult = await AsyncHttpClient.PostAsync(this, cancellationToken);
                 
                 if (RequiredStatusCode is not null && postResult.Response.StatusCode != RequiredStatusCode)
+                {
                     throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {postResult.Response.StatusCode} with the following body: {postResult.RawBody}");
-                
+                }
+
                 return postResult;
             
             //case HttpMethod.Put:
@@ -178,7 +191,9 @@ public class HttpRequestBuilder
         where T : class
     {
         if (Request is null)
+        {
             throw new InvalidOperationException("Request is not built.");
+        }
 
         switch (Method.Method)
         {
@@ -186,16 +201,20 @@ public class HttpRequestBuilder
                 var result = await AsyncHttpClient.GetAsync<T>(this, cancellationToken);
             
                 if (RequiredStatusCode is not null && result.Response.StatusCode != RequiredStatusCode)
+                {
                     throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {result.Response.StatusCode} with the following body: {result.RawBody}");
-                
+                }
+
                 return result;
             
             case "POST":
                 var postResult = await AsyncHttpClient.PostAsync<T>(this, cancellationToken);
                 
                 if (RequiredStatusCode is not null && postResult.Response.StatusCode != RequiredStatusCode)
+                {
                     throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {postResult.Response.StatusCode} with the following body: {postResult.RawBody}");
-                
+                }
+
                 return postResult;
             
             //case HttpMethod.Put:

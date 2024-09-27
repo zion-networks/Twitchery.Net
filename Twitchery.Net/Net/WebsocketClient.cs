@@ -121,7 +121,9 @@ public class WebsocketClient : IDisposable
                         var intermediate = MemoryPool<char>.Shared.Rent(payloadSize).Memory;
 
                         if (payloadSize == 0)
+                        {
                             continue;
+                        }
 
                         decoder.Convert(store.Span[..payloadSize], intermediate.Span, true, out _, out var charsCount, out _);
                         var message = intermediate[..charsCount];
@@ -148,7 +150,9 @@ public class WebsocketClient : IDisposable
         Logger.LogInformation("Websocket client stopped.");
 
         if (IsConnected || IsConnecting)
+        {
             await Client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Stopped", token);
+        }
     }
 
     public void Dispose()

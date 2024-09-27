@@ -5,10 +5,10 @@ using Newtonsoft.Json;
 using TwitcheryNet.Attributes;
 using TwitcheryNet.Events;
 using TwitcheryNet.Extensions;
+using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Client;
 using TwitcheryNet.Models.Client.Messages.Welcome;
 using TwitcheryNet.Models.Helix.EventSub.Subscriptions;
-using TwitcheryNet.Net.EventSub.EventArgs;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Net.EventSub;
@@ -18,9 +18,10 @@ public class EventSubClient
     private ILogger<EventSubClient> Logger { get; }
     private ITwitchery Twitch { get; }
     private WebsocketClient Client { get; }
-    private Dictionary<string, Action<EventSubNotification>> Handlers { get; } = new();
+    private Dictionary<string, Func<EventSubClient, string, Task>> Handlers { get; } = new();
+    private Dictionary<string, Delegate> Listener { get; } = new();
     
-    private string? SessionId { get; set; }
+    private string SessionId { get; set; } = string.Empty;
     
     private const string TwitchWebSocketUrl = "wss://eventsub.wss.twitch.tv/ws";
     
@@ -38,8 +39,10 @@ public class EventSubClient
         Twitch = twitchery;
         Client = new WebsocketClient(twitchery);
 
+        InitializerHandlers();
+        
         Client.DataReceived += OnDataReceived;
-        Client.ErrorOccured += OnErrorOccured;
+        Client.ErrorOccured += OnErrorOccured; 
     }
     
     [ActivatorUtilitiesConstructor]
@@ -49,15 +52,40 @@ public class EventSubClient
         Twitch = twitchery;
         Client = new WebsocketClient(twitchery);
 
+        InitializerHandlers();
+        
         Client.DataReceived += OnDataReceived;
         Client.ErrorOccured += OnErrorOccured;
     }
 
-    public async Task StartAsync(CancellationToken token = default)
+    private void InitializerHandlers()
+    {
+        var handlers = typeof(INotification)
+            .Assembly
+            .ExportedTypes
+            .Where(x => typeof(INotification).IsAssignableFrom(x) && x is { IsInterface: false, IsAbstract: false })
+            .Select(Activator.CreateInstance)
+            .Cast<INotification>()
+            .ToList();
+        
+        Handlers.Clear();
+        
+        foreach (var handler in handlers)
+        {
+            Logger.LogDebug("Registering EventSub handler for {SubscriptionType}", handler.SubscriptionType);
+            Handlers.Add(handler.SubscriptionType, handler.Handle);
+        }
+    }
+
+    public Task StartAsync(CancellationToken token = default)
     {
         _lastReceived = DateTimeOffset.MinValue;
         
+#pragma warning disable CS4014
         Client.StartAsync(TwitchWebSocketUrl, token: token);
+#pragma warning restore CS4014
+        
+        return Task.CompletedTask;
     }
 
     private Task OnErrorOccured(object sender, ErrorOccuredArgs e)
@@ -71,7 +99,7 @@ public class EventSubClient
     {
         _lastReceived = DateTimeOffset.Now;
 
-        WebSocketMessage? msg = null;
+        WebSocketMessage? msg;
         try
         {
             msg = JsonConvert.DeserializeObject<WebSocketMessage>(args.Message);
@@ -124,7 +152,7 @@ public class EventSubClient
     {
         ArgumentNullException.ThrowIfNull(msg);
 
-        SessionWelcomeMessage? json = null;
+        SessionWelcomeMessage? json;
 
         try
         {
@@ -173,23 +201,26 @@ public class EventSubClient
         return Task.CompletedTask;
     }
 
-    private Task HandleNotificationAsync(string msg)
+    private async Task HandleNotificationAsync(string msg)
     {
-        //var baseMsg = JsonConvert.DeserializeObject<EventSubNotificationData<>>(msg);
-
-        //if (baseMsg is not null)
-        //{
-        //    Logger.LogInformation("Received Notification for {SubType}", baseMsg.Metadata.SubscriptionType);
-        //}
-        //else
-        //{
-        //    Logger.LogWarning("Failed to deserialize Notification");
-        //}
-        //
-        //var txt = JsonConvert.SerializeObject(baseMsg?.Metadata);
-        //Logger.LogDebug("Notification Metadata: {Metadata}", txt);
+        var msgJson = JsonConvert.DeserializeObject<WebSocketMessage>(msg);
         
-        return Task.CompletedTask;
+        if (msgJson is null)
+        {
+            Logger.LogError("Failed to deserialize WebSocketMessage");
+            return;
+        }
+
+        var subType = msgJson.Metadata.SubscriptionType;
+        
+        if (Handlers.TryGetValue(subType, out var handler))
+        {
+            await handler.Invoke(this, msg);
+        }
+        else
+        {
+            Logger.LogWarning("No handler found for {SubscriptionType}", subType);
+        }
     }
 
     private Task HandleRevocationAsync(string msg)
@@ -199,14 +230,16 @@ public class EventSubClient
     }
 
     [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]
-    public async Task SubscribeAsync<T>(T source, Enum eventKey, Action<EventSubNotification> handler)
+    public async Task SubscribeAsync<T>(T source, Enum subType, Delegate eventHandler)
         where T : class, IConditional
     {
         if (Client.IsConnected is false)
+        {
             await StartAsync();
-        
-        var eventType = eventKey.GetValue();
-        var eventVersion = eventKey.GetVersion();
+        }
+
+        var eventType = subType.GetValue();
+        var eventVersion = subType.GetVersion();
         
         ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
         ArgumentException.ThrowIfNullOrWhiteSpace(eventVersion);
@@ -216,7 +249,7 @@ public class EventSubClient
             Condition = source.ToCondition(),
             Transport =
             {
-                SessionId = SessionId
+                SessionId = await WaitForSessionIdAsync(TaskUtils.TimeoutToken())
             }
         };
 
@@ -230,9 +263,57 @@ public class EventSubClient
         }
         
         var resData = response.Data[0];
-
-        Handlers.TryAdd(resData.Id, handler);
+        
+        Listener.Add(resData.Id, eventHandler);
         
         Logger.LogInformation("Registered for event {Key}[v{Version}]: {Status}", eventType, eventVersion, response.Data[0].Status);
+    }
+
+    private async Task<string> WaitForSessionIdAsync(CancellationToken token = default)
+    {
+        while (string.IsNullOrWhiteSpace(SessionId))
+        {
+            await Task.Delay(10, token);
+        }
+                
+        return SessionId;
+    }
+
+    public async Task RaiseEventAsync<T>(string subscriptionType, EventSubNotificationData<T> data)
+        where T : class, new()
+    {
+        var subId = data.Payload.Subscription.Id;
+        
+        if (Listener.TryGetValue(subId, out var listener))
+        {
+            try
+            {
+                data.Payload.Event.InjectTwitchery(Twitch);
+                
+                if (listener.Method.ReturnType == typeof(Task))
+                {
+                    Logger.LogDebug("Invoking async listener delegate method {Delegate} for {SubscriptionType}", listener.Method, subscriptionType);
+                    if (listener.Method.Invoke(listener.Target, [ listener.Target, data.Payload.Event ]) is Task awaitableListenerHandler)
+                    {
+                        await awaitableListenerHandler;
+                    }
+                    else
+                    {
+                        Logger.LogError("Cannot invoke async listener, because the return value is " +
+                                        "expected to of type Task for Delegate method {Delegate} for " +
+                                        "{SubscriptionType}", listener.Method, subscriptionType);
+                    }
+                }
+                else
+                {
+                    Logger.LogDebug("Invoking listener delegate method {Delegate} for {SubscriptionType}", listener.Method, subscriptionType);
+                    listener.Method.Invoke(listener.Target, [ listener.Target, data.Payload.Event ]);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "Failed to invoke listener delegate method {Delegate} for {SubscriptionType}", listener.Method, subscriptionType);
+            }
+        }
     }
 }

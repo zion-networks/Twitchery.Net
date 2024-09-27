@@ -1,11 +1,15 @@
 using Newtonsoft.Json;
 using TwitcheryNet.Net.EventSub.EventArgs.Generic;
+using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Net.EventSub.EventArgs.Channel;
 
 [JsonObject]
-public class ChatMessageNotification
+public class ChatMessageNotification : IHasTwitchery
 {
+    [JsonIgnore]
+    public ITwitchery? Twitch { get; set; }
+    
     [JsonProperty("broadcaster_user_id")]
     public string BroadcasterUserId { get; set; } = string.Empty;
     

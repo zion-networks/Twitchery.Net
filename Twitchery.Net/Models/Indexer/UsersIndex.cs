@@ -25,8 +25,10 @@ public sealed class UsersIndex
         var users = await Twitch.GetTwitchApiAsync<GetUsersRequest, GetUsersResponse>(request, typeof(UsersIndex), cancellationToken);
 
         if (users is null)
+        {
             return null;
-        
+        }
+
         foreach (var user in users.Users)
         {
             await Twitch.InjectDataAsync(user, cancellationToken);
@@ -41,8 +43,10 @@ public sealed class UsersIndex
         var user = users?.Users.FirstOrDefault();
         
         if (user is not null)
+        {
             await Twitch.InjectDataAsync(user, cancellationToken);
-        
+        }
+
         return user;
     }
     
@@ -63,8 +67,10 @@ public sealed class UsersIndex
         var user = users?.Users.FirstOrDefault();
         
         if (user is not null)
+        {
             await Twitch.InjectDataAsync(user, cancellationToken);
-        
+        }
+
         return user;
     }
     

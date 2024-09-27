@@ -30,8 +30,10 @@ public class CreatePollRequestBody
     public CreatePollRequestBody(string broadcasterId, string title, params PollChoice[] choices)
     {
         if (choices.Length is < 1 or > 5)
+        {
             throw new ArgumentOutOfRangeException(nameof(choices), "Choices must be between 1 and 5.");
-        
+        }
+
         BroadcasterId = broadcasterId;
         Title = title;
         Choices = choices;

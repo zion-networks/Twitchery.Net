@@ -39,8 +39,10 @@ public class ModerationIndex
         var channels = new List<ModeratedChannel>();
         
         if (response is not null)
+        {
             channels.AddRange(response.Data);
-        
+        }
+
         return channels;
     }
     
