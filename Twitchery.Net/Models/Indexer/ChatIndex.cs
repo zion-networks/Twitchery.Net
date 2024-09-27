@@ -1,8 +1,10 @@
+using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using TwitcheryNet.Attributes;
 using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Chat;
 using TwitcheryNet.Models.Helix.Chat.Messages;
+using TwitcheryNet.Models.Helix.Chat.Shoutouts;
 using TwitcheryNet.Services.Implementations;
 
 namespace TwitcheryNet.Models.Indexer;
@@ -42,5 +44,18 @@ public class ChatIndex
     public async Task<GetAllChattersResponse> GetAllChattersAsync(GetChattersRequest request, CancellationToken cancellationToken = default)
     {
         return await Twitch.GetTwitchApiAllAsync<GetChattersRequest, GetChattersResponse, GetAllChattersResponse>(request, typeof(ChatIndex), cancellationToken);
+    }
+    
+    [ApiRoute("POST", "chat/shoutouts", "moderator:manage:shoutouts", RequiredStatusCode = HttpStatusCode.NoContent)]
+    public async Task SendShoutoutAsync(SendShoutoutRequest request, CancellationToken cancellationToken = default)
+    {
+        await Twitch.PostTwitchApiAsync(request, typeof(ChatIndex), cancellationToken);
+    }
+    
+    public async Task SendShoutoutAsync(string fromBroadcasterId, string toBroadcasterId, string moderatorId, CancellationToken cancellationToken = default)
+    {
+        var request = new SendShoutoutRequest(fromBroadcasterId, toBroadcasterId, moderatorId);
+        
+        await Twitch.PostTwitchApiAsync(request, typeof(ChatIndex), cancellationToken);
     }
 }

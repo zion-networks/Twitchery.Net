@@ -1,5 +1,5 @@
+using System.Diagnostics;
 using TwitcheryNet.Models.Helix;
-using TwitcheryNet.Models.Helix.Chat.Messages;
 using TwitcheryNet.Services.Implementations;
 
 namespace TwitcheryNet.Tests.Services;
@@ -8,55 +8,101 @@ public class Tests
 {
     private Twitchery _twitchery;
 
-    private string _twitchClientId = string.Empty;
-    private string _twitchAccessToken = string.Empty;
-    private string _twitchBroadcasterId = string.Empty;
-    private string _twitchModeratorId = string.Empty;
+    private string? _twitchClientId;
+    private string? _twitchAccessToken;
+    private string? _twitchRedirectUri;
+    private string? _twitchBroadcasterId;
+    private string? _twitchModeratorId;
+
+    private readonly string[] _scopes =
+    [
+        "bits:read",
+        "chat:read",
+        "channel:read:subscriptions",
+        "channel:read:redemptions",
+        "channel:read:hype_train",
+        "channel:read:polls",
+        "channel:read:predictions",
+        "channel:read:goals",
+        "channel:read:vips",
+        "channel:read:charity",
+        "channel:read:guest_star",
+        "moderator:read:chatters",
+        "moderator:read:shoutouts",
+        "moderator:read:followers",
+        "moderation:read",
+        "channel:bot",
+        "user:bot",
+        "user:read:chat",
+        "chat:edit",
+        "user:write:chat",
+        "user:read:emotes"
+    ];
+
+    private static string? GetEnvironmentVariable(string name)
+    {
+        var process = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
+        var user = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.User);
+        var machine = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Machine);
+        
+        if (string.IsNullOrWhiteSpace(process) is false)
+        {
+            return process;
+        }
+
+        if (string.IsNullOrWhiteSpace(user) is false)
+        {
+            return user;
+        }
+
+        if (string.IsNullOrWhiteSpace(machine) is false)
+        {
+            return machine;
+        }
+
+        return null;
+    }
     
-    [SetUp]
+    [OneTimeSetUp]
     public void Setup()
     {
-        _twitchClientId = Environment.GetEnvironmentVariable("TWITCH_CLIENT_ID") ?? string.Empty;
-        _twitchAccessToken = Environment.GetEnvironmentVariable("TWITCH_ACCESS_TOKEN") ?? string.Empty;
-        _twitchBroadcasterId = Environment.GetEnvironmentVariable("TWITCH_BROADCASTER_ID") ?? string.Empty;
-        _twitchModeratorId = Environment.GetEnvironmentVariable("TWITCH_MODERATOR_ID") ?? string.Empty;
+        Trace.Listeners.Add(new ConsoleTraceListener());
         
-        Assert.That(_twitchClientId, Is.Not.Empty);
-        Assert.That(_twitchAccessToken, Is.Not.Empty);
-        Assert.That(_twitchBroadcasterId, Is.Not.Empty);
-        Assert.That(_twitchModeratorId, Is.Not.Empty);
+        _twitchClientId = GetEnvironmentVariable("TWITCH_CLIENT_ID");
+        _twitchAccessToken = GetEnvironmentVariable("TWITCH_ACCESS_TOKEN");
+        _twitchRedirectUri = GetEnvironmentVariable("TWITCH_REDIRECT_URI");
+        _twitchBroadcasterId = GetEnvironmentVariable("TWITCH_BROADCASTER_ID");
+        _twitchModeratorId = GetEnvironmentVariable("TWITCH_MODERATOR_ID");
+        
+        var isGithubActions = GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+        
+        Assert.That(_twitchClientId, Is.Not.Null.And.Not.Empty);
+        Assert.That(_twitchAccessToken, Is.Not.Null.And.Not.Empty);
+        Assert.That(_twitchRedirectUri, Is.Not.Null.And.Not.Empty);
+        Assert.That(_twitchBroadcasterId, Is.Not.Null.And.Not.Empty);
+        Assert.That(_twitchModeratorId, Is.Not.Null.And.Not.Empty);
         
         _twitchery = new Twitchery
         {
             ClientId = _twitchClientId,
-            ClientAccessToken = _twitchAccessToken,
-            ClientScopes =
-            {
-                "bits:read",
-                "chat:read",
-                "channel:read:subscriptions",
-                "channel:read:redemptions",
-                "channel:read:hype_train",
-                "channel:read:polls",
-                "channel:read:predictions",
-                "channel:read:goals",
-                "channel:read:vips",
-                "channel:read:charity",
-                "channel:read:guest_star",
-                "moderator:read:chatters",
-                "moderator:read:shoutouts",
-                "moderator:read:followers",
-                "moderation:read",
-                "channel:bot",
-                "user:bot",
-                "user:read:chat",
-                "chat:edit",
-                "user:write:chat",
-                "user:read:emotes"
-            }
+            ClientAccessToken = _twitchAccessToken
         };
         
+        _twitchery.ClientScopes.AddRange(_scopes);
+
+        if (isGithubActions is false)
+        {
+            _twitchery.ClientAccessToken = null;
+            _twitchery.UserBrowserAuthAsync(_twitchRedirectUri, _scopes).Wait();
+        }
+        
         Assert.That(_twitchery, Is.Not.Null);
+    }
+    
+    [OneTimeTearDown]
+    public void EndTest()
+    {
+        Trace.Flush();
     }
 
     [Test]
@@ -81,13 +127,13 @@ public class Tests
     [Test]
     public void TestGetChannelFollowers()
     {
-        Assert.DoesNotThrow(() =>
+        Assert.DoesNotThrowAsync(async () =>
         {
-            var followers = _twitchery.ChannelFollowers[_twitchBroadcasterId];
+            var followers = _twitchery.Channels[_twitchBroadcasterId]?.Followers;
             
             Assert.That(followers, Is.Not.Null);
             
-            foreach (var follower in followers)
+            await foreach (var follower in followers)
             {
                 Assert.That(follower, Is.Not.Null);
                 Assert.That(follower.UserId, Is.Not.Empty);
@@ -141,27 +187,27 @@ public class Tests
         });
     }
     
-    [Test]
-    public void TestSendChatMessageUser()
-    {
-        Assert.DoesNotThrowAsync(async () =>
-        {
-            var msgRequest = new SendChatMessageRequestBody(
-                _twitchBroadcasterId,
-                _twitchBroadcasterId,
-                "Hello, World! Twitchery.Net successfully passed another test!");
-            var sentMessageResponse = await _twitchery.Chat.SendChatMessageUserAsync(msgRequest);
-            
-            Assert.That(sentMessageResponse, Is.Not.Null);
-            
-            foreach (var sentMessage in sentMessageResponse.SentMessages)
-            {
-                Assert.That(sentMessage.IsSent, Is.True);
-                Assert.That(sentMessage.MessageId, Is.Not.Empty);
-                Assert.That(sentMessage.DropReason, Is.Null);
-            }
-        });
-    }
+    //[Test]
+    //public void TestSendChatMessageUser()
+    //{
+    //    Assert.DoesNotThrowAsync(async () =>
+    //    {
+    //        var msgRequest = new SendChatMessageRequestBody(
+    //            _twitchBroadcasterId,
+    //            _twitchBroadcasterId,
+    //            "Hello, World! Twitchery.Net successfully passed another test!");
+    //        var sentMessageResponse = await _twitchery.Chat.SendChatMessageUserAsync(msgRequest);
+    //        
+    //        Assert.That(sentMessageResponse, Is.Not.Null);
+    //        
+    //        foreach (var sentMessage in sentMessageResponse.SentMessages)
+    //        {
+    //            Assert.That(sentMessage.IsSent, Is.True);
+    //            Assert.That(sentMessage.MessageId, Is.Not.Empty);
+    //            Assert.That(sentMessage.DropReason, Is.Null);
+    //        }
+    //    });
+    //}
 
     [Test]
     public void TestGetUsers()

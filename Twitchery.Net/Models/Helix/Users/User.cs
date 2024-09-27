@@ -1,5 +1,8 @@
 using Newtonsoft.Json;
+using TwitcheryNet.Attributes;
 using TwitcheryNet.Json.Converter;
+using TwitcheryNet.Models.Helix.Channels;
+using TwitcheryNet.Models.Indexer;
 
 namespace TwitcheryNet.Models.Helix.Users;
 
@@ -40,4 +43,8 @@ public class User
     
     [JsonProperty("created_at")]
     public DateTime CreatedAt { get; set; }
+    
+    [JsonIgnore]
+    [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.GetChannelInformationAsync))]
+    public Channel? Channel { get; set; }
 }

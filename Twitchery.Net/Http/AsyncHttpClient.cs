@@ -1,4 +1,3 @@
-using System.Net;
 using Newtonsoft.Json;
 
 namespace TwitcheryNet.Http;
@@ -41,7 +40,9 @@ public static class AsyncHttpClient
         var response = AsyncHttpResponse<T>.FromBase(await GetAsync(uri, cancellationToken));
 
         if (string.IsNullOrWhiteSpace(response.RawBody))
+        {
             return response;
+        }
 
         response.Body = JsonConvert.DeserializeObject<T>(response.RawBody);
         
@@ -54,8 +55,10 @@ public static class AsyncHttpClient
         var response = AsyncHttpResponse<T>.FromBase(await GetAsync(uri, cancellationToken));
         
         if (string.IsNullOrWhiteSpace(response.RawBody))
+        {
             return response;
-        
+        }
+
         response.Body = JsonConvert.DeserializeObject<T>(response.RawBody);
         
         return response;
@@ -67,8 +70,10 @@ public static class AsyncHttpClient
         var response = AsyncHttpResponse<T>.FromBase(await GetAsync(builder, cancellationToken));
         
         if (string.IsNullOrWhiteSpace(response.RawBody))
+        {
             return response;
-        
+        }
+
         response.Body = JsonConvert.DeserializeObject<T>(response.RawBody);
         
         return response;
@@ -119,8 +124,10 @@ public static class AsyncHttpClient
         var response = AsyncHttpResponse<T>.FromBase(await PostAsync(uri, content, cancellationToken));
         
         if (string.IsNullOrWhiteSpace(response.RawBody))
+        {
             return response;
-        
+        }
+
         response.Body = JsonConvert.DeserializeObject<T>(response.RawBody);
         
         return response;
@@ -132,8 +139,10 @@ public static class AsyncHttpClient
         var response = AsyncHttpResponse<T>.FromBase(await PostAsync(uri, content, cancellationToken));
         
         if (string.IsNullOrWhiteSpace(response.RawBody))
+        {
             return response;
-        
+        }
+
         response.Body = JsonConvert.DeserializeObject<T>(response.RawBody);
         
         return response;
@@ -145,8 +154,10 @@ public static class AsyncHttpClient
         var response = AsyncHttpResponse<T>.FromBase(await PostAsync(builder, cancellationToken));
         
         if (string.IsNullOrWhiteSpace(response.RawBody))
+        {
             return response;
-        
+        }
+
         response.Body = JsonConvert.DeserializeObject<T>(response.RawBody);
         
         return response;
