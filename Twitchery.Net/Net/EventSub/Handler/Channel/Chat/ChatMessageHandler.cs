@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TwitcheryNet.Net.EventSub.EventArgs.Channel;
 
-namespace TwitcheryNet.Net.EventSub.Handler.Channel;
+namespace TwitcheryNet.Net.EventSub.Handler.Channel.Chat;
 
 public class ChatMessageHandler : INotification
 {
