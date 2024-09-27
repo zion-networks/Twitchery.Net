@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TwitcheryNet.Attributes;
 using TwitcheryNet.Events;
+using TwitcheryNet.Exceptions;
 using TwitcheryNet.Extensions;
 using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Client;
@@ -257,6 +258,62 @@ public class EventSubClient
         Logger.LogInformation("Re-registered listener for {SubscriptionType} with Id {SubscriptionId}", subType, subId);
         
         Listener.Remove(subId);
+    }
+    
+    public async Task RegisterEventSubAsync(object source, string eventName, Delegate handler)
+    {
+        ArgumentNullException.ThrowIfNull(source, nameof(source));
+        ArgumentException.ThrowIfNullOrEmpty(eventName, nameof(eventName));
+        ArgumentNullException.ThrowIfNull(handler, nameof(handler));
+
+        var tSource = source.GetType();
+        var tEvent = tSource.GetEvent(eventName);
+        
+        if (tEvent is null)
+        {
+            Logger.LogError("Event {EventName} not found in {SourceType}", eventName, tSource);
+            return;
+        }
+        
+        if (tEvent.TryGetCustomAttribute<EventSubAttribute>(out var eventSub) is false || eventSub is null)
+        {
+            return;
+        }
+        
+        MissingTwitchScopeException.ThrowIfMissing(Twitch.ClientScopes, eventSub.RequiredScopes);
+        
+        var eventType = eventSub.EventSubType;
+        var eventVersion = eventSub.EventSubVersion;
+        
+        await SubscribeAsync(source, eventType, eventVersion, handler);
+    }
+
+    public async Task UnregisterEventSubAsync(object source, string eventName, Delegate handler)
+    {
+        ArgumentNullException.ThrowIfNull(source, nameof(source));
+        ArgumentException.ThrowIfNullOrEmpty(eventName, nameof(eventName));
+        ArgumentNullException.ThrowIfNull(handler, nameof(handler));
+        
+        var tSource = source.GetType();
+        var tEvent = tSource.GetEvent(eventName);
+        
+        if (tEvent is null)
+        {
+            Logger.LogError("Event {EventName} not found in {SourceType}", eventName, tSource);
+            return;
+        }
+        
+        if (tEvent.TryGetCustomAttribute<EventSubAttribute>(out var eventSub) is false || eventSub is null)
+        {
+            return;
+        }
+        
+        MissingTwitchScopeException.ThrowIfMissing(Twitch.ClientScopes, eventSub.RequiredScopes);
+        
+        var eventType = eventSub.EventSubType;
+        var eventVersion = eventSub.EventSubVersion;
+        
+        // TODO: required DELETE http method to be implemented in AsyncHttpClient and Twitchery
     }
     
     [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]

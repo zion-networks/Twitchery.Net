@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Models.Indexer;
+using TwitcheryNet.Net.EventSub;
 
 namespace TwitcheryNet.Services.Interfaces;
 
@@ -11,6 +12,8 @@ public interface ITwitchery
     public string? ClientSecret { get; set; }
     public string? ClientAccessToken { get; set; }
     public List<string> ClientScopes { get; }
+    
+    internal EventSubClient EventSubClient { get; set; }
     
     public UsersIndex Users { get; }
     public StreamsIndex Streams { get; }

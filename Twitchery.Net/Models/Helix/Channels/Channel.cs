@@ -1,13 +1,11 @@
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TwitcheryNet.Attributes;
 using TwitcheryNet.Events;
-using TwitcheryNet.Exceptions;
-using TwitcheryNet.Extensions;
 using TwitcheryNet.Models.Helix.EventSub.Subscriptions;
 using TwitcheryNet.Models.Indexer;
 using TwitcheryNet.Net.EventSub;
 using TwitcheryNet.Net.EventSub.EventArgs.Channel;
-using TwitcheryNet.Services.Implementations;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Models.Helix.Channels;
@@ -16,6 +14,10 @@ namespace TwitcheryNet.Models.Helix.Channels;
 public class Channel : IHasTwitchery, IConditional
 {
     public ITwitchery? Twitch { get; set; }
+
+    private ILogger<Channel> Logger { get; } = LoggerFactory
+        .Create(x => x.AddConsole())
+        .CreateLogger<Channel>();
     
     [JsonProperty("broadcaster_id")]
     public string BroadcasterId { get; set; } = string.Empty;
@@ -70,29 +72,11 @@ public class Channel : IHasTwitchery, IConditional
             BroadcasterUserId = BroadcasterId
         };
     }
-    
+
+    [EventSub("channel.chat.message", "1", "chat:read")]
     public event AsyncEventHandler<ChatMessageNotification>? ChatMessage
     {
-        add
-        {
-            if (value is null)
-            {
-                return;
-            }
-
-            if (Twitch is Twitchery twitchery)
-            {
-                MissingTwitchScopeException.ThrowIfMissing(twitchery.ClientScopes, "chat:read");
-
-                var type = EventSubTypes.Channel.ChatMessage.GetValue() ?? throw new NullReferenceException();
-                var version = EventSubTypes.Channel.ChatMessage.GetVersion() ?? throw new NullReferenceException();
-                
-                twitchery.EventSubClient.SubscribeAsync(this, type, version, value).Wait();
-            }
-        }
-        remove
-        {
-            
-        }
+        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(ChatMessage), value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(ChatMessage), value ?? throw new ArgumentNullException(nameof(value))).Wait();
     }
 }
