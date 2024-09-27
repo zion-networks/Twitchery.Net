@@ -288,6 +288,7 @@ public class EventSubClient
         {
             try
             {
+                data.Payload.Event.InjectTwitchery(Twitch);
                 
                 if (listener.Method.ReturnType == typeof(Task))
                 {
