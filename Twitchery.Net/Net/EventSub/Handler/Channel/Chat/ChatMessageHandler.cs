@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TwitcheryNet.Net.EventSub.EventArgs.Channel;
+using TwitcheryNet.Net.EventSub.EventArgs.Channel.Chat;
 
 namespace TwitcheryNet.Net.EventSub.Handler.Channel.Chat;
 
@@ -9,7 +10,7 @@ public class ChatMessageHandler : INotification
     public string SubscriptionType => "channel.chat.message";
     public string SubscriptionVersion => "1";
     
-    public ILogger<ChatMessageHandler> Logger { get; } =
+    private ILogger<ChatMessageHandler> Logger { get; } =
         LoggerFactory
             .Create(b => b.AddConsole())
             .CreateLogger<ChatMessageHandler>();
@@ -18,12 +19,12 @@ public class ChatMessageHandler : INotification
     {
         try
         {
-            var data = JsonConvert.DeserializeObject<EventSubNotificationData<ChatMessageNotification>>(json);
+            var data = JsonConvert.DeserializeObject<EventSubNotificationData<ChannelChatMessageNotification>>(json);
 
             if (data is null)
             {
                 throw new JsonSerializationException(
-                    $"Failed to deserialize JSON for {nameof(ChatMessageNotification)}");
+                    $"Failed to deserialize JSON for {nameof(ChannelChatMessageNotification)}");
             }
 
             await client.RaiseEventAsync(SubscriptionType, data);

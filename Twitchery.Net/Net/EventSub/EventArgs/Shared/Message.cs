@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace TwitcheryNet.Net.EventSub.EventArgs.Generic;
+namespace TwitcheryNet.Net.EventSub.EventArgs.Shared;
 
 [JsonObject]
 public class Message
