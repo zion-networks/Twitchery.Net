@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using TwitcheryNet.Attributes;
+using TwitcheryNet.Events;
 using TwitcheryNet.Exceptions;
 using TwitcheryNet.Models.Helix.EventSub.Subscriptions;
 using TwitcheryNet.Models.Indexer;
@@ -69,8 +70,7 @@ public class Channel : IHasTwitchery, IConditional
         };
     }
     
-    private event EventHandler<ChatMessageNotification>? _chatMessage; 
-    public event EventHandler<ChatMessageNotification>? ChatMessage
+    public event AsyncEventHandler<ChatMessageNotification>? ChatMessage
     {
         add
         {
@@ -83,20 +83,12 @@ public class Channel : IHasTwitchery, IConditional
             {
                 MissingTwitchScopeException.ThrowIfMissing(twitchery.ClientScopes, "chat:read");
                 
-                twitchery.EventSubClient.SubscribeAsync(this, EventSubTypes.Channel.ChatMessage, args =>
-                {
-                    if (args.Event is ChatMessageNotification chatMessage)
-                    {
-                        _chatMessage?.Invoke(twitchery.EventSubClient, chatMessage);
-                    }
-                }).Wait();
+                twitchery.EventSubClient.SubscribeAsync(this, EventSubTypes.Channel.ChatMessage, value).Wait();
             }
-            
-            _chatMessage += value;
         }
         remove
         {
-            _chatMessage -= value;
+            
         }
     }
 }

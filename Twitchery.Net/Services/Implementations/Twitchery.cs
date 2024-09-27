@@ -174,9 +174,8 @@ public class Twitchery : ITwitchery
     private List<ValidationResult> ValidateRoute(Route route, [CallerMemberName] string? callerMemberName = null)
     {
         var results = new List<ValidationResult>();
-        var callerMethod = callerMemberName is not null ? GetType().GetMethod(callerMemberName) : null;
 
-        if (callerMethod?.Name.StartsWith(route.ApiRoute.HttpMethod, StringComparison.CurrentCultureIgnoreCase) is false)
+        if (callerMemberName?.StartsWith(route.ApiRoute.HttpMethod, StringComparison.CurrentCultureIgnoreCase) is false)
         {
             results.Add(new ValidationResult($"Invalid HTTP method for route {route.ApiRoute.Path}"));
         }
