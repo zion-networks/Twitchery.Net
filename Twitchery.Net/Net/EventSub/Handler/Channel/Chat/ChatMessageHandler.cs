@@ -7,6 +7,7 @@ namespace TwitcheryNet.Net.EventSub.Handler.Channel.Chat;
 public class ChatMessageHandler : INotification
 {
     public string SubscriptionType => "channel.chat.message";
+    public string SubscriptionVersion => "1";
     
     public ILogger<ChatMessageHandler> Logger { get; } =
         LoggerFactory
