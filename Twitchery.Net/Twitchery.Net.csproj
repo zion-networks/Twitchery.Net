@@ -8,7 +8,7 @@
         <AssemblyName>TwitcheryNet</AssemblyName>
         <RootNamespace>TwitcheryNet</RootNamespace>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>0.0.2-prerelease</Version>
+        <Version>0.0.2.2-prerelease</Version>
         <Authors>Zion Networks UG (haftungsbeschränkt)</Authors>
         <PackageProjectUrl>https://github.com/zion-networks/Twitchery.Net</PackageProjectUrl>
         <PackageLicenseUrl>https://github.com/zion-networks/Twitchery.Net/blob/main/LICENSE</PackageLicenseUrl>

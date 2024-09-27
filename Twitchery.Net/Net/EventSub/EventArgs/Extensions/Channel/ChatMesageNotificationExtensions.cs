@@ -6,11 +6,11 @@ namespace TwitcheryNet.Net.EventSub.EventArgs.Extensions.Channel;
 
 public static class ChatMesageNotificationExtensions
 {
-    public static async Task ReplyAsync(this ChatMessageNotification msg, string reply, CancellationToken token = default)
+    public static async Task<bool> ReplyAsync(this ChatMessageNotification msg, string reply, CancellationToken token = default)
     {
         if (msg is not IHasTwitchery tMsg)
         {
-            return;
+            return false;
         }
         
         if (tMsg.Twitch?.Me?.Id is not null)
@@ -22,7 +22,11 @@ public static class ChatMesageNotificationExtensions
                 ReplyParentMessageId = msg.MessageId
             };
             
-            await tMsg.Twitch.Chat.SendChatMessageAppAsync(req, token);
+            await tMsg.Twitch.Chat.SendChatMessageUserAsync(req, token);
+            
+            return true;
         }
+        
+        return false;
     }
 }
