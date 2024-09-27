@@ -29,7 +29,7 @@ public class Twitchery : ITwitchery
 
     #region Internal Properties
 
-    internal EventSubClient EventSubClient { get; set; }
+    EventSubClient ITwitchery.EventSubClient { get; set; }
 
     #endregion Internal Properties
 
@@ -70,7 +70,7 @@ public class Twitchery : ITwitchery
             config.AddConsole().SetMinimumLevel(LogLevel.Debug);
         }).CreateLogger<Twitchery>();
         
-        EventSubClient = new(this);
+        ((ITwitchery)this).EventSubClient = new(this);
     }
 
     [ActivatorUtilitiesConstructor]
@@ -78,7 +78,7 @@ public class Twitchery : ITwitchery
     {
         Logger = logger;
         
-        EventSubClient = new(this);
+        ((ITwitchery)this).EventSubClient = new(this);
     }
     
     public string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null)

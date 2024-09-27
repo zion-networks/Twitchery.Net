@@ -20,4 +20,22 @@ public static class EnumExtensions
         var attribute = member?.GetCustomAttribute<VersionAttribute>();
         return attribute?.Version;
     }
+    
+    public static T? FromValue<T>(string value) where T : Enum
+    {
+        var type = typeof(T);
+        foreach (var field in type.GetFields())
+        {
+            var attribute = field.GetCustomAttribute<ValueAttribute>();
+            if (attribute?.Value == value)
+            {
+                if (field.GetValue(null) is T result)
+                {
+                    return result;
+                }
+            }
+        }
+
+        return default;
+    }
 }

@@ -4,11 +4,13 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TwitcheryNet.Attributes;
 using TwitcheryNet.Events;
+using TwitcheryNet.Exceptions;
 using TwitcheryNet.Extensions;
 using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Client;
 using TwitcheryNet.Models.Client.Messages.Welcome;
 using TwitcheryNet.Models.Helix.EventSub.Subscriptions;
+using TwitcheryNet.Net.EventSub.EventArgs;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Net.EventSub;
@@ -223,30 +225,131 @@ public class EventSubClient
         }
     }
 
-    private Task HandleRevocationAsync(string msg)
+    private async Task HandleRevocationAsync(string msg)
     {
         Logger.LogDebug("Received Revocation!");
-        return Task.CompletedTask;
+
+        var data = JsonConvert.DeserializeObject<EventSubNotificationData>(msg);
+        
+        if (data is null)
+        {
+            Logger.LogError("Failed to deserialize EventSubNotificationData<NotificationSubscription>");
+            return;
+        }
+
+        var subId = data.Payload.Subscription.Id;
+        var subType = data.Payload.Subscription.Type;
+        var currentListener = Listener.GetValueOrDefault(subId);
+
+        if (currentListener is null)
+        {
+            Logger.LogWarning("No listener found for {SubscriptionType} with Id {SubscriptionId}", subType, subId);
+            return;
+        }
+
+        if (currentListener.Target is null)
+        {
+            Logger.LogWarning("Listener target is null for {SubscriptionType} with Id {SubscriptionId}", subType, subId);
+            return;
+        }
+        
+        await SubscribeAsync(currentListener.Target, data.Metadata.SubscriptionType, data.Metadata.SubscriptionVersion, currentListener);
+        
+        Logger.LogInformation("Re-registered listener for {SubscriptionType} with Id {SubscriptionId}", subType, subId);
+        
+        Listener.Remove(subId);
+    }
+    
+    public async Task RegisterEventSubAsync(object source, string eventName, Delegate handler)
+    {
+        ArgumentNullException.ThrowIfNull(source, nameof(source));
+        ArgumentException.ThrowIfNullOrEmpty(eventName, nameof(eventName));
+        ArgumentNullException.ThrowIfNull(handler, nameof(handler));
+
+        var tSource = source.GetType();
+        var tEvent = tSource.GetEvent(eventName);
+        
+        if (tEvent is null)
+        {
+            Logger.LogError("Event {EventName} not found in {SourceType}", eventName, tSource);
+            return;
+        }
+        
+        if (tEvent.TryGetCustomAttribute<EventSubAttribute>(out var eventSub) is false || eventSub is null)
+        {
+            return;
+        }
+        
+        MissingTwitchScopeException.ThrowIfMissing(Twitch.ClientScopes, eventSub.RequiredScopes);
+        
+        var eventType = eventSub.EventSubType;
+        var eventVersion = eventSub.EventSubVersion;
+        
+        await SubscribeAsync(source, eventType, eventVersion, handler);
     }
 
-    [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]
-    public async Task SubscribeAsync<T>(T source, Enum subType, Delegate eventHandler)
-        where T : class, IConditional
+    public async Task UnregisterEventSubAsync(object source, string eventName, Delegate handler)
     {
+        ArgumentNullException.ThrowIfNull(source, nameof(source));
+        ArgumentException.ThrowIfNullOrEmpty(eventName, nameof(eventName));
+        ArgumentNullException.ThrowIfNull(handler, nameof(handler));
+        
+        var tSource = source.GetType();
+        var tEvent = tSource.GetEvent(eventName);
+        
+        if (tEvent is null)
+        {
+            Logger.LogError("Event {EventName} not found in {SourceType}", eventName, tSource);
+            return;
+        }
+        
+        if (tEvent.TryGetCustomAttribute<EventSubAttribute>(out var eventSub) is false || eventSub is null)
+        {
+            return;
+        }
+        
+        MissingTwitchScopeException.ThrowIfMissing(Twitch.ClientScopes, eventSub.RequiredScopes);
+        
+        var eventType = eventSub.EventSubType;
+        var eventVersion = eventSub.EventSubVersion;
+        
+        // TODO: required DELETE http method to be implemented in AsyncHttpClient and Twitchery
+    }
+    
+    [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]
+    public async Task SubscribeAsync(object source, string eventType, string eventVersion, Delegate eventHandler)
+    {
+        var sourceType = source.GetType();
+        
+        if (typeof(IConditional).IsAssignableFrom(sourceType) is false)
+        {
+            Logger.LogError("Source object does not implement IConditional");
+            return;
+        }
+        
+        if (sourceType.IsInterface || sourceType.IsAbstract)
+        {
+            Logger.LogError("Source object cannot be an interface or abstract class");
+            return;
+        }
+
+        if (source is not IConditional conditionalSource)
+        {
+            Logger.LogError("Failed to cast source object to IConditional");
+            return;
+        }
+        
         if (Client.IsConnected is false)
         {
             await StartAsync();
         }
-
-        var eventType = subType.GetValue();
-        var eventVersion = subType.GetVersion();
         
         ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
         ArgumentException.ThrowIfNullOrWhiteSpace(eventVersion);
 
         var request = new CreateEventSubSubscriptionRequestBody(eventType, eventVersion)
         {
-            Condition = source.ToCondition(),
+            Condition = conditionalSource.ToCondition(),
             Transport =
             {
                 SessionId = await WaitForSessionIdAsync(TaskUtils.TimeoutToken())
@@ -267,6 +370,12 @@ public class EventSubClient
         Listener.Add(resData.Id, eventHandler);
         
         Logger.LogInformation("Registered for event {Key}[v{Version}]: {Status}", eventType, eventVersion, response.Data[0].Status);
+    }
+
+    [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]
+    public async Task SubscribeAsync<T>(T source, string eventType, string eventVersion, Delegate eventHandler) where T : class, IConditional
+    {
+        await SubscribeAsync((object)source, eventType, eventVersion, eventHandler);
     }
 
     private async Task<string> WaitForSessionIdAsync(CancellationToken token = default)
