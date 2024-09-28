@@ -70,6 +70,7 @@ public class Channel : IHasTwitchery, IConditional
         return new EventSubCondition
         {
             UserId = Twitch?.Me?.Id,
+            ModeratorUserId = Twitch?.Me?.Id,
             BroadcasterUserId = BroadcasterId
         };
     }
