@@ -20,6 +20,7 @@ public sealed class UsersIndex
     public User? this[uint id] => GetUserByIdAsync(id).Result;
     
     [ApiRoute("GET", "users")]
+    [RequiresToken(TokenType.Both)]
     public async Task<GetUsersResponse?> GetUsersAsync(GetUsersRequest request, CancellationToken cancellationToken = default)
     {
         var users = await Twitch.GetTwitchApiAsync<GetUsersRequest, GetUsersResponse>(request, typeof(UsersIndex), cancellationToken);
