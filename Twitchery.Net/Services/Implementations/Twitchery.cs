@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Net;
+using System.Net.Mime;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,9 +10,12 @@ using TwitcheryNet.Exceptions;
 using TwitcheryNet.Extensions;
 using TwitcheryNet.Http;
 using TwitcheryNet.Misc;
+using TwitcheryNet.Models.Auth.Flow;
 using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Models.Indexer;
+using TwitcheryNet.Models.OAuth2;
+using TwitcheryNet.Models.OAuth2.Validation;
 using TwitcheryNet.Net.EventSub;
 using TwitcheryNet.Services.Interfaces;
 
@@ -20,10 +25,14 @@ public class Twitchery : ITwitchery
 {
     #region Public Properties
 
-    public string? ClientId { get; set; }
-    public string? ClientSecret { get; set; }
-    public string? ClientAccessToken { get; set; }
-    public List<string> ClientScopes { get; private set; } = [];
+    public string? UserClientId { get; set; }
+    public string? UserAccessToken { get; set; }
+    public List<string> UserScopes { get; private set; } = [];
+    
+    public string? AppClientId { get; set; }
+    public string? AppClientSecret { get; set; }
+    public string? AppAccessToken { get; set; }
+    public List<string> AppClientScopes { get; set; } = [];
 
     #endregion
 
@@ -60,6 +69,10 @@ public class Twitchery : ITwitchery
     #region Shorthand Properties
 
     public User? Me { get; private set; }
+    
+    public bool HasUserToken => !string.IsNullOrWhiteSpace(UserAccessToken);
+    public bool HasAppToken => !string.IsNullOrWhiteSpace(AppAccessToken);
+    public bool HasAnyToken => HasUserToken || HasAppToken;
 
     #endregion Shorthand Properties
     
@@ -86,7 +99,7 @@ public class Twitchery : ITwitchery
         var scope = string.Join("+", scopes);
         
         var url = $"{TwitchImplicitGrantUrl}" +
-               $"?client_id={ClientId}" +
+               $"?client_id={UserClientId}" +
                $"&redirect_uri={redirectUri}" +
                $"&response_type=token" +
                $"&scope={scope}";
@@ -99,12 +112,17 @@ public class Twitchery : ITwitchery
         return url;
     }
     
-    public async Task<bool> UserBrowserAuthAsync(string redirectUri, params string[] scopes)
+    public async Task<bool> UserBrowserAuthAsync(string clientId, string redirectUri, params string[] scopes)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientId, nameof(clientId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(redirectUri, nameof(redirectUri));
+        
         if (scopes.Length == 0)
         {
             throw new ArgumentException("At least one scope is required.");
         }
+        
+        UserClientId = clientId;
         
         var state = Guid.NewGuid().ToString();
         var url = GetOAuthUrl(redirectUri, scopes, state);
@@ -122,8 +140,8 @@ public class Twitchery : ITwitchery
             return false;
         }
         
-        ClientAccessToken = oauthLogin.AccessToken;
-        ClientScopes = (oauthLogin.Scope?.Split('+') ?? [])
+        UserAccessToken = oauthLogin.AccessToken;
+        UserScopes = (oauthLogin.Scope?.Split('+') ?? [])
             .Select(Uri.UnescapeDataString)
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .ToList();
@@ -133,17 +151,116 @@ public class Twitchery : ITwitchery
         
         return true;
     }
+    
+    public async Task<bool> AppAuthAsync(string clientId, string clientSecret, CancellationToken token = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientId, nameof(clientId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientSecret, nameof(clientSecret));
+        
+        AppClientId = clientId;
+        AppClientSecret = clientSecret;
+
+        var request = new ClientCredentialsFlowRequest(clientId, clientSecret);
+        var response = await AsyncHttpClient
+            .StartPost("https://id.twitch.tv/oauth2/token")
+            .SetContentType(MediaTypeNames.Application.FormUrlEncoded)
+            .SetQuery(request)
+            .Build()
+            .SendAsync<ClientCredentialsFlowResponse>(token);
+        
+        if (response.Validate("https://id.twitch.tv/oauth2/validate") is false)
+        {
+            return false;
+        }
+        
+        if (response.Body is null)
+        {
+            return false;
+        }
+        
+        AppAccessToken = response.Body.AccessToken;
+        
+        return true;
+    }
+
+    public async Task<bool> CheckAppToken()
+    {
+        if (string.IsNullOrWhiteSpace(AppAccessToken))
+        {
+            return false;
+        }
+
+        var request = new ValidateOauth2TokenRequest();
+        var response = await AsyncHttpClient
+            .StartGet("https://id.twitch.tv/oauth2/validate")
+            .AddHeader("Authorization", "OAuth " + AppAccessToken)
+            .SetQuery(request)
+            .Build()
+            .SendAsync<ValidateOAuth2TokenResponse>();
+        
+        if (response.Validate("https://id.twitch.tv/oauth2/validate") is false)
+        {
+            return false;
+        }
+        
+        if (response.Body is null)
+        {
+            return false;
+        }
+        
+        if (response.Body.ClientId != AppClientId)
+        {
+            Logger.LogWarning("Client ID mismatch on App Token validation.");
+            return false;
+        }
+        
+        return response.Body?.ExpiresIn > 0;
+    }
+    
+    public async Task<bool> CheckUserToken()
+    {
+        if (string.IsNullOrWhiteSpace(UserAccessToken))
+        {
+            return false;
+        }
+
+        var request = new ValidateOauth2TokenRequest();
+        var response = await AsyncHttpClient
+            .StartGet("https://id.twitch.tv/oauth2/validate")
+            .AddHeader("Authorization", "OAuth " + UserAccessToken)
+            .SetQuery(request)
+            .Build()
+            .SendAsync<ValidateOAuth2TokenResponse>();
+
+        if (response.Validate("https://id.twitch.tv/oauth2/validate") is false)
+        {
+            return false;
+        }
+        
+        if (response.Body is null)
+        {
+            return false;
+        }
+        
+        if (response.Body.ClientId != UserClientId)
+        {
+            Logger.LogWarning("Client ID mismatch on App Token validation.");
+            return false;
+        }
+        
+        return response.Body?.ExpiresIn > 0;
+    }
 
     private Route GetRoute(Type callerType, string callerMemberName)
     {
         ArgumentException.ThrowIfNullOrEmpty(callerMemberName, nameof(callerMemberName));
         
-        if (string.IsNullOrWhiteSpace(ClientId))
+        if (string.IsNullOrWhiteSpace(UserClientId))
         {
             throw new ApiException("Client ID is required.");
         }
         
-        if (string.IsNullOrWhiteSpace(ClientAccessToken))
+        if (string.IsNullOrWhiteSpace(UserAccessToken))
         {
             throw new ApiException("Access Token is required.");
         }
@@ -160,15 +277,80 @@ public class Twitchery : ITwitchery
 
         var apiRoute = apiMethod.GetCustomAttribute<ApiRoute>();
         var apiRules = apiMethod.GetCustomAttribute<ApiRules>();
+        var requiredToken = apiMethod.GetCustomAttribute<RequiresTokenAttribute>()?.TokenType;
+
+        if (requiredToken is null)
+        {
+            throw new MissingAttributeException<RequiresTokenAttribute>(apiMethod);
+        }
         
         if (apiRoute is null)
         {
             throw new MissingAttributeException<ApiRoute>(apiMethod);
         }
 
-        var route = new Route(TwitchApiEndpoint, apiRoute, apiMethod, apiRules);
+        var route = new Route(TwitchApiEndpoint, apiRoute, apiMethod, requiredToken.Value, apiRules);
         
         return route;
+    }
+
+    public OAuthCredentials GetCredentialsForRoute(Route route)
+    {
+        ArgumentNullException.ThrowIfNull(route, nameof(route));
+
+        if (route.RequiredTokenType == TokenType.UserAccess)
+        {
+            if (string.IsNullOrWhiteSpace(UserClientId))
+            {
+                throw new ApiException("User Client ID is required.");
+            }
+            
+            if (string.IsNullOrWhiteSpace(UserAccessToken))
+            {
+                throw new ApiException("User Access Token is required.");
+            }
+        }
+
+        if (route.RequiredTokenType == TokenType.AppAccess)
+        {
+            if (string.IsNullOrWhiteSpace(AppClientId))
+            {
+                throw new ApiException("App Client ID is required.");
+            }
+            
+            if (string.IsNullOrWhiteSpace(AppClientSecret))
+            {
+                throw new ApiException("App Client Secret is required.");
+            }
+            
+            if (string.IsNullOrWhiteSpace(AppAccessToken))
+            {
+                throw new ApiException("App Access Token is required.");
+            }
+        }
+        
+        if (route.RequiredTokenType == TokenType.Both)
+        {
+            if (string.IsNullOrWhiteSpace(UserClientId) && string.IsNullOrWhiteSpace(AppClientId))
+            {
+                throw new ApiException("Either User or App Client ID is required.");
+            }
+            
+            if (string.IsNullOrWhiteSpace(UserAccessToken) && string.IsNullOrWhiteSpace(AppAccessToken))
+            {
+                throw new ApiException("Either User or App Access Token is required.");
+            }
+        }
+
+        return route.RequiredTokenType switch
+        {
+            TokenType.UserAccess => new OAuthCredentials(UserClientId!, UserAccessToken!),
+            TokenType.AppAccess => new OAuthCredentials(AppClientId!, AppClientSecret!, AppAccessToken!),
+            TokenType.Both => UserAccessToken is not null
+                ? new OAuthCredentials(UserClientId!, UserAccessToken!)
+                : new OAuthCredentials(AppClientId!, AppClientSecret!, AppAccessToken!),
+            _ => throw new ArgumentOutOfRangeException(nameof(route.RequiredTokenType), route.RequiredTokenType, "Invalid token type.")
+        };
     }
     
     private List<ValidationResult> ValidateRoute(Route route, [CallerMemberName] string? callerMemberName = null)
@@ -182,7 +364,7 @@ public class Twitchery : ITwitchery
         
         foreach (var scope in route.ApiRoute.RequiredScopes)
         {
-            if (ClientScopes.Contains(scope) is false)
+            if (UserScopes.Contains(scope) is false)
             {
                 results.Add(new ValidationResult($"Missing required scope {scope} on route {route.ApiRoute.Path}"));
             }
@@ -191,6 +373,21 @@ public class Twitchery : ITwitchery
         if (Uri.IsWellFormedUriString(route.FullUrl, UriKind.Absolute) is false)
         {
             results.Add(new ValidationResult($"Invalid API route URL: {route.ApiRoute.Path}"));
+        }
+        
+        switch (route.RequiredTokenType)
+        {
+            case TokenType.UserAccess when HasUserToken is false:
+                results.Add(new ValidationResult("User Access Token is required."));
+                break;
+            
+            case TokenType.AppAccess when HasAppToken is false:
+                results.Add(new ValidationResult("App Access Token is required."));
+                break;
+            
+            case TokenType.Both when HasAnyToken is false:
+                results.Add(new ValidationResult("User or App Access Token is required."));
+                break;
         }
 
         // TODO: Implement rules validation
@@ -212,15 +409,20 @@ public class Twitchery : ITwitchery
         {
             throw new ApiException($"Route validation failed:\n{string.Join("\n- ", validationResults)}");
         }
-
+        
+        var credentials = GetCredentialsForRoute(route);
         var result = await AsyncHttpClient
             .StartGet(route.FullUrl)
-            .AddHeader("Authorization", $"Bearer {ClientAccessToken}")
-            .AddHeader("Client-Id", ClientId!)
-            .SetQueryString(query)
-            .RequireStatusCode(route.ApiRoute.RequiredStatusCode)
+            .AddHeader("Authorization", $"Bearer {credentials.AccessToken}")
+            .AddHeader("Client-Id", credentials.ClientId)
+            .SetQuery(query)
             .Build()
             .SendAsync<TResponse>(token);
+        
+        if (result.Validate(route.FullUrl, route.ApiRoute.RequiredStatusCode) is false)
+        {
+            return null;
+        }
 
         return result.Body;
     }
@@ -249,15 +451,20 @@ public class Twitchery : ITwitchery
             {
                 pagination.After = after;
             }
-
+            
+            var credentials = GetCredentialsForRoute(route);
             var result = await AsyncHttpClient
                 .StartGet(route.FullUrl)
-                .AddHeader("Authorization", $"Bearer {ClientAccessToken}")
-                .AddHeader("Client-Id", ClientId!)
-                .SetQueryString(query)
-                .RequireStatusCode(route.ApiRoute.RequiredStatusCode)
+                .AddHeader("Authorization", $"Bearer {credentials.AccessToken}")
+                .AddHeader("Client-Id", credentials.ClientId)
+                .SetQuery(query)
                 .Build()
                 .SendAsync<TResponse>(token);
+            
+            if (result.Validate(route.FullUrl, route.ApiRoute.RequiredStatusCode) is false)
+            {
+                return new TFullResponse();
+            }
             
             var response = result.Body;
             
@@ -290,15 +497,20 @@ public class Twitchery : ITwitchery
             throw new ApiException($"Route validation failed:\n{string.Join("\n- ", validationResults)}");
         }
 
+        var credentials = GetCredentialsForRoute(route);
         var result = await AsyncHttpClient
             .StartPost(route.FullUrl)
-            .AddHeader("Authorization", $"Bearer {ClientAccessToken}")
-            .AddHeader("Client-Id", ClientId!)
-            .SetQueryString(query)
+            .AddHeader("Authorization", $"Bearer {credentials.AccessToken}")
+            .AddHeader("Client-Id", credentials.ClientId)
+            .SetQuery(query)
             .SetBody(body)
-            .RequireStatusCode(route.ApiRoute.RequiredStatusCode)
             .Build()
             .SendAsync<TResponse>(token);
+        
+        if (result.Validate(route.FullUrl, route.ApiRoute.RequiredStatusCode) is false)
+        {
+            return null;
+        }
 
         return result.Body;
     }
@@ -317,14 +529,19 @@ public class Twitchery : ITwitchery
             throw new ApiException($"Route validation failed:\n{string.Join("\n- ", validationResults)}");
         }
 
+        var credentials = GetCredentialsForRoute(route);
         var result = await AsyncHttpClient
             .StartPost(route.FullUrl)
-            .AddHeader("Authorization", $"Bearer {ClientAccessToken}")
-            .AddHeader("Client-Id", ClientId!)
+            .AddHeader("Authorization", $"Bearer {credentials.AccessToken}")
+            .AddHeader("Client-Id", credentials.ClientId)
             .SetBody(body)
-            .RequireStatusCode(route.ApiRoute.RequiredStatusCode)
             .Build()
             .SendAsync<TResponse>(token);
+        
+        if (result.Validate(route.FullUrl, route.ApiRoute.RequiredStatusCode) is false)
+        {
+            return null;
+        }
 
         return result.Body;
     }
@@ -342,14 +559,16 @@ public class Twitchery : ITwitchery
             throw new ApiException($"Route validation failed:\n{string.Join("\n- ", validationResults)}");
         }
 
-        await AsyncHttpClient
+        var credentials = GetCredentialsForRoute(route);
+        var response = await AsyncHttpClient
             .StartPost(route.FullUrl)
-            .AddHeader("Authorization", $"Bearer {ClientAccessToken}")
-            .AddHeader("Client-Id", ClientId!)
-            .SetQueryString(query)
-            .RequireStatusCode(route.ApiRoute.RequiredStatusCode)
+            .AddHeader("Authorization", $"Bearer {credentials.AccessToken}")
+            .AddHeader("Client-Id", credentials.ClientId)
+            .SetQuery(query)
             .Build()
             .SendAsync(token);
+
+        response.Validate(route.FullUrl, route.ApiRoute.RequiredStatusCode);
     }
 
     public async Task InjectDataAsync<TTarget>(TTarget target, CancellationToken token = default) where TTarget : class

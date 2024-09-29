@@ -21,6 +21,7 @@ public class ChannelsIndex
     public Channel? this[string broadcasterId] => GetChannelInformationAsync(broadcasterId).Result;
     
     [ApiRoute("GET", "channels")]
+    [RequiresToken(TokenType.Both)]
     public async Task<GetChannelResponse?> GetChannelInformationAsync(GetChannelRequest request, CancellationToken cancellationToken = default)
     {
         return await Twitch.GetTwitchApiAsync<GetChannelRequest, GetChannelResponse>(request, typeof(ChannelsIndex), cancellationToken);
@@ -52,7 +53,9 @@ public class ChannelsIndex
         return channel;
     }
     
+    [ApiRules(RouteRules.RequiresOwner | RouteRules.RequiresModerator)]
     [ApiRoute("GET", "channels/followers", "moderator:read:followers")]
+    [RequiresToken(TokenType.UserAccess)]
     public async Task<GetChannelFollowersResponse?> GetChannelFollowersAsync(GetChannelFollowersRequest request, CancellationToken cancellationToken = default)
     {
         return await Twitch.GetTwitchApiAsync<GetChannelFollowersRequest, GetChannelFollowersResponse>(request, typeof(ChannelsIndex), cancellationToken);
@@ -60,6 +63,7 @@ public class ChannelsIndex
     
     [ApiRules(RouteRules.RequiresOwner | RouteRules.RequiresModerator)]
     [ApiRoute("GET", "channels/followers", "moderator:read:followers")]
+    [RequiresToken(TokenType.UserAccess)]
     public async Task<GetAllChannelFollowersResponse> GetAllChannelFollowersAsync(GetChannelFollowersRequest request, CancellationToken cancellationToken = default)
     {
         return await Twitch.GetTwitchApiAllAsync<GetChannelFollowersRequest, GetChannelFollowersResponse, GetAllChannelFollowersResponse>(request, typeof(ChannelsIndex), cancellationToken);

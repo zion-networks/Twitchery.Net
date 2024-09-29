@@ -21,6 +21,7 @@ public class StreamsIndex
     public Stream? this[uint id] => GetStreamByIdAsync(id).Result;
 
     [ApiRoute("GET", "streams")]
+    [RequiresToken(TokenType.Both)]
     public async Task<GetStreamsResponse?> GetStreamsAsync(GetStreamsRequest request, CancellationToken cancellationToken = default)
     {
         return await Twitch.GetTwitchApiAsync<GetStreamsRequest, GetStreamsResponse>(request, typeof(StreamsIndex), cancellationToken);
