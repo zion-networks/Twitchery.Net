@@ -9,14 +9,14 @@ You can check the current implementation status here: [Implementation Status](Ro
 
 # Using Twitchery.Net: For Developers, Contributors and Testers
 
-## Getting Started
+## Getting Started as a Developer
 
 1. Create a new Twitch application at [Twitch Developer Console](https://dev.twitch.tv/console/apps)
 2. Create a new .NET8+ project or open an existing one
 3. Install the library from NuGet: `dotnet add package TwitcheryNet --prerelease`
 4. Start coding!
 
-## Example Usage
+### Example Usage
 
 ```csharp
 using TwitcheryNet.Services.Implementations;
@@ -53,3 +53,7 @@ Console.WriteLine("My last follower was {0}, who followed on {1}!", lastFollower
 
 // Yes, it's that simple!
 ```
+
+## Getting Started as a Contributor
+
+Follow the contribution guidelines in [CONTRIBUTING.md](CONTRIBUTING.md) to get started.

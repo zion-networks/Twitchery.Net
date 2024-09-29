@@ -6,6 +6,7 @@ using TwitcheryNet.Models.Helix.EventSub.Subscriptions;
 using TwitcheryNet.Models.Indexer;
 using TwitcheryNet.Net.EventSub;
 using TwitcheryNet.Net.EventSub.EventArgs.Channel;
+using TwitcheryNet.Net.EventSub.EventArgs.Channel.Chat;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Models.Helix.Channels;
@@ -69,14 +70,29 @@ public class Channel : IHasTwitchery, IConditional
         return new EventSubCondition
         {
             UserId = Twitch?.Me?.Id,
+            ModeratorUserId = Twitch?.Me?.Id,
             BroadcasterUserId = BroadcasterId
         };
     }
 
     [EventSub("channel.chat.message", "1", "chat:read")]
-    public event AsyncEventHandler<ChatMessageNotification>? ChatMessage
+    public event AsyncEventHandler<ChannelChatMessageNotification>? ChatMessage
     {
         add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(ChatMessage), value ?? throw new ArgumentNullException(nameof(value))).Wait();
         remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(ChatMessage), value ?? throw new ArgumentNullException(nameof(value))).Wait();
+    }
+    
+    [EventSub("channel.follow", "2", "moderator:read:followers")]
+    public event AsyncEventHandler<ChannelFollowNotification>? Follow
+    {
+        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(Follow), value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(Follow), value ?? throw new ArgumentNullException(nameof(value))).Wait();
+    }
+    
+    [EventSub("channel.subscribe", "1", "channel:read:subscriptions")]
+    public event AsyncEventHandler<ChannelSubscribeNotification>? Subscribe
+    {
+        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(Subscribe), value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(Subscribe), value ?? throw new ArgumentNullException(nameof(value))).Wait();
     }
 }
