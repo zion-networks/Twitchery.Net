@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Text;
 using System.Web;
 using Newtonsoft.Json;
@@ -11,10 +13,10 @@ public class HttpRequestBuilder
 {
     public HttpMethod Method { get; private set; }
     public Uri Uri { get; private set; }
+    public string ContentType { get; private set; } = MediaTypeNames.Application.Json;
     public Dictionary<string, string> Headers { get; } = new();
     public Dictionary<string, string> QueryParameters { get; } = new();
     public string? Body { get; set; }
-    public HttpStatusCode? RequiredStatusCode { get; set; }
     public HttpRequestMessage? Request { get; private set; }
     
     public HttpRequestBuilder(HttpMethod method, Uri uri)
@@ -26,18 +28,6 @@ public class HttpRequestBuilder
     public HttpRequestBuilder SetPath(string path)
     {
         Uri = new Uri(Uri, path);
-        return this;
-    }
-    
-    public HttpRequestBuilder RequireStatusCode(HttpStatusCode statusCode)
-    {
-        RequiredStatusCode = statusCode;
-        return this;
-    }
-    
-    public HttpRequestBuilder RequireStatusCode(int statusCode)
-    {
-        RequiredStatusCode = (HttpStatusCode) statusCode;
         return this;
     }
     
@@ -73,7 +63,7 @@ public class HttpRequestBuilder
         return this;
     }
     
-    public HttpRequestBuilder SetQueryString<TQuery>(TQuery? query) where TQuery : class, IQueryParameters
+    public HttpRequestBuilder SetQuery<TQuery>(TQuery? query) where TQuery : class, IQueryParameters
     {
         if (query is null)
         {
@@ -137,8 +127,7 @@ public class HttpRequestBuilder
         
         if (Body is not null)
         {
-            var mediaType = Headers.GetValueOrDefault("Content-Type", "application/json");
-            var strContent = new StringContent(Body ?? string.Empty, Encoding.UTF8, mediaType);
+            var strContent = new StringContent(Body ?? string.Empty, Encoding.UTF8, ContentType);
             request.Content = strContent;
         }
 
@@ -147,84 +136,44 @@ public class HttpRequestBuilder
         return this;
     }
     
-    public async Task<AsyncHttpResponse> SendAsync(CancellationToken cancellationToken = default)
+    public async Task<AsyncHttpResponse> SendAsync(CancellationToken token = default)
     {
         if (Request is null)
         {
             throw new InvalidOperationException("Request is not built.");
         }
 
-        switch (Method.Method)
+        var result = Method.Method switch
         {
-            case "GET":
-                var getResult = await AsyncHttpClient.GetAsync(this, cancellationToken);
-
-                if (RequiredStatusCode is not null && getResult.Response.StatusCode != RequiredStatusCode)
-                {
-                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {getResult.Response.StatusCode} with the following body: {getResult.RawBody}");
-                }
-
-                return getResult;
-            
-            case "POST":
-                var postResult = await AsyncHttpClient.PostAsync(this, cancellationToken);
-                
-                if (RequiredStatusCode is not null && postResult.Response.StatusCode != RequiredStatusCode)
-                {
-                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {postResult.Response.StatusCode} with the following body: {postResult.RawBody}");
-                }
-
-                return postResult;
-            
-            //case HttpMethod.Put:
-            //    return await SendPutAsync(cancellationToken);
-            
-            //case HttpMethod.Delete:
-            //    return await SendDeleteAsync(cancellationToken);
-            
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
+            "GET" => await AsyncHttpClient.GetAsync(this, token),
+            "POST" => await AsyncHttpClient.PostAsync(this, token),
+            _ => throw new NotImplementedException($"Method {Method.Method} is not implemented yet.")
+        };
+        
+        return result;
     }
     
-    public async Task<AsyncHttpResponse<T>> SendAsync<T>(CancellationToken cancellationToken = default)
-        where T : class
+    public async Task<AsyncHttpResponse<T>> SendAsync<T>(CancellationToken token = default) where T : class
     {
         if (Request is null)
         {
             throw new InvalidOperationException("Request is not built.");
         }
 
-        switch (Method.Method)
+        var result = Method.Method switch
         {
-            case "GET":
-                var result = await AsyncHttpClient.GetAsync<T>(this, cancellationToken);
-            
-                if (RequiredStatusCode is not null && result.Response.StatusCode != RequiredStatusCode)
-                {
-                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {result.Response.StatusCode} with the following body: {result.RawBody}");
-                }
+            "GET" => await AsyncHttpClient.GetAsync<T>(this, token),
+            "POST" => await AsyncHttpClient.PostAsync<T>(this, token),
+            _ => throw new NotImplementedException($"Method {Method.Method} is not implemented yet.")
+        };
 
-                return result;
-            
-            case "POST":
-                var postResult = await AsyncHttpClient.PostAsync<T>(this, cancellationToken);
-                
-                if (RequiredStatusCode is not null && postResult.Response.StatusCode != RequiredStatusCode)
-                {
-                    throw new HttpRequestException($"Expected status code {RequiredStatusCode} but received {postResult.Response.StatusCode} with the following body: {postResult.RawBody}");
-                }
+        return result;
+    }
 
-                return postResult;
-            
-            //case HttpMethod.Put:
-            //    return await SendPutAsync(cancellationToken);
-            
-            //case HttpMethod.Delete:
-            //    return await SendDeleteAsync(cancellationToken);
-            
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
+    public HttpRequestBuilder SetContentType(string type)
+    {
+        ContentType = type;
+        
+        return this;
     }
 }

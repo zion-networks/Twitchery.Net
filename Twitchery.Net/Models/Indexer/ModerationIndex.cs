@@ -17,6 +17,7 @@ public class ModerationIndex
     }
     
     [ApiRoute("GET", "moderation/channels", "user:read:moderated_channels")]
+    [RequiresToken(TokenType.UserAccess)]
     public async Task<GetModeratedChannelsResponse?> GetModeratedChannelsAsync(GetModeratedChannelsRequest request, CancellationToken token = default)
     {
         var response = await Twitch.GetTwitchApiAsync<GetModeratedChannelsRequest, GetModeratedChannelsResponse>(request, typeof(ModerationIndex), token);
@@ -25,6 +26,7 @@ public class ModerationIndex
     }
     
     [ApiRoute("GET", "moderation/channels", "user:read:moderated_channels")]
+    [RequiresToken(TokenType.UserAccess)]
     public async Task<GetAllModeratedChannelsRequest> GetAllModeratedChannelsAsync(GetModeratedChannelsRequest request, CancellationToken token = default)
     {
         return await Twitch

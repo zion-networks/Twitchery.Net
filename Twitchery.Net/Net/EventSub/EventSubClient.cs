@@ -280,7 +280,7 @@ public class EventSubClient
             return;
         }
         
-        MissingTwitchScopeException.ThrowIfMissing(Twitch.ClientScopes, eventSub.RequiredScopes);
+        MissingTwitchScopeException.ThrowIfMissing(Twitch.UserScopes, eventSub.RequiredScopes);
         
         var eventType = eventSub.EventSubType;
         var eventVersion = eventSub.EventSubVersion;
@@ -308,7 +308,7 @@ public class EventSubClient
             return;
         }
         
-        MissingTwitchScopeException.ThrowIfMissing(Twitch.ClientScopes, eventSub.RequiredScopes);
+        MissingTwitchScopeException.ThrowIfMissing(Twitch.UserScopes, eventSub.RequiredScopes);
         
         var eventType = eventSub.EventSubType;
         var eventVersion = eventSub.EventSubVersion;
@@ -316,6 +316,7 @@ public class EventSubClient
         // TODO: required DELETE http method to be implemented in AsyncHttpClient and Twitchery
     }
     
+    [RequiresToken(TokenType.UserAccess)]
     [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]
     public async Task SubscribeAsync(object source, string eventType, string eventVersion, Delegate eventHandler)
     {
@@ -372,6 +373,7 @@ public class EventSubClient
         Logger.LogInformation("Registered for event {Key}[v{Version}]: {Status}", eventType, eventVersion, response.Data[0].Status);
     }
 
+    [RequiresToken(TokenType.UserAccess)]
     [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]
     public async Task SubscribeAsync<T>(T source, string eventType, string eventVersion, Delegate eventHandler) where T : class, IConditional
     {

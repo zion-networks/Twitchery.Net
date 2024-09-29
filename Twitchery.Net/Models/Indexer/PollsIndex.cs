@@ -16,6 +16,7 @@ public class PollsIndex
     }
     
     [ApiRoute("POST", "polls", "channel:manage:polls")]
+    [RequiresToken(TokenType.UserAccess)]
     public async Task<CreatePollResponseBody?> CreatePollAsync(CreatePollRequestBody requestBody, CancellationToken cancellationToken = default)
     {
         return await Twitch.PostTwitchApiAsync<CreatePollRequestBody, CreatePollResponseBody>(requestBody, typeof(PollsIndex), cancellationToken);
