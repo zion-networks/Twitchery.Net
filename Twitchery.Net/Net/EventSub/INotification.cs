@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace TwitcheryNet.Net.EventSub;
 
 public interface INotification
