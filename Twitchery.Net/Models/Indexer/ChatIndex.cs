@@ -23,30 +23,35 @@ public class ChatIndex
         GetAllChattersAsync(new GetChattersRequest(broadcasterId, moderatorId)).Result.Followers;
     
     [ApiRoute("POST", "chat/messages", "user:write:chat")]
+    [RequiresToken(TokenType.UserAccess)]
     public async Task<SendChatMessageResponse?> SendChatMessageUserAsync(SendChatMessageRequestBody requestBody, CancellationToken cancellationToken = default)
     {
         return await Twitch.PostTwitchApiAsync<SendChatMessageRequestBody, SendChatMessageResponse>(requestBody, typeof(ChatIndex), cancellationToken);
     }
     
     [ApiRoute("POST", "chat/messages", "user:bot", "channel:bot")]
+    [RequiresToken(TokenType.AppAccess)]
     public async Task<SendChatMessageResponse?> SendChatMessageAppAsync(SendChatMessageRequestBody requestBody, CancellationToken cancellationToken = default)
     {
         return await Twitch.PostTwitchApiAsync<SendChatMessageRequestBody, SendChatMessageResponse>(requestBody, typeof(ChatIndex), cancellationToken);
     }
     
     [ApiRoute("GET", "chat/chatters", "moderator:read:chatters")]
+    [RequiresToken(TokenType.UserAccess)]
     public async Task<GetChattersResponse?> GetChattersAsync(GetChattersRequest request, CancellationToken cancellationToken = default)
     {
         return await Twitch.GetTwitchApiAsync<GetChattersRequest, GetChattersResponse>(request, typeof(ChatIndex), cancellationToken);
     }
     
     [ApiRoute("GET", "chat/chatters", "moderator:read:chatters")]
+    [RequiresToken(TokenType.UserAccess)]
     public async Task<GetAllChattersResponse> GetAllChattersAsync(GetChattersRequest request, CancellationToken cancellationToken = default)
     {
         return await Twitch.GetTwitchApiAllAsync<GetChattersRequest, GetChattersResponse, GetAllChattersResponse>(request, typeof(ChatIndex), cancellationToken);
     }
     
     [ApiRoute("POST", "chat/shoutouts", "moderator:manage:shoutouts", RequiredStatusCode = HttpStatusCode.NoContent)]
+    [RequiresToken(TokenType.UserAccess)]
     public async Task SendShoutoutAsync(SendShoutoutRequest request, CancellationToken cancellationToken = default)
     {
         await Twitch.PostTwitchApiAsync(request, typeof(ChatIndex), cancellationToken);

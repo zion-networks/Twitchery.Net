@@ -31,7 +31,8 @@ public static class WebTools
             }
             else
             {
-                throw;
+                Console.WriteLine("Failed to start your browser.");
+                Console.WriteLine("Please open the following URL in your browser: {0}", url);
             }
         }
     }

@@ -8,10 +8,14 @@ namespace TwitcheryNet.Services.Interfaces;
 
 public interface ITwitchery
 {
-    public string? ClientId { get; set; }
-    public string? ClientSecret { get; set; }
-    public string? ClientAccessToken { get; set; }
-    public List<string> ClientScopes { get; }
+    public string? UserClientId { get; set; }
+    public string? UserAccessToken { get; set; }
+    public List<string> UserScopes { get; }
+    
+    public string? AppClientId { get; set; }
+    public string? AppClientSecret { get; set; }
+    public string? AppAccessToken { get; set; }
+    public List<string> AppClientScopes { get; set; }
     
     internal EventSubClient EventSubClient { get; set; }
     
@@ -20,10 +24,15 @@ public interface ITwitchery
     public ChannelsIndex Channels { get; }
     public ChatIndex Chat { get; }
     public User? Me { get; }
+    bool HasUserToken { get; }
+    bool HasAppToken { get; }
+    bool HasAnyToken { get; }
 
     string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null);
-    
-    Task<bool> UserBrowserAuthAsync(string redirectUri, string[] scopes);
+    Task<bool> UserBrowserAuthAsync(string clientId, string redirectUri, string[] scopes);
+    Task<bool> AppAuthAsync(string clientId, string clientSecret, CancellationToken token = default);
+    Task<bool> CheckAppToken();
+    Task<bool> CheckUserToken();
     
     Task<TResponse?> GetTwitchApiAsync<TQuery, TResponse>(TQuery? query, Type callerType, CancellationToken token = default,
         [CallerMemberName] string? callerMemberName = null)

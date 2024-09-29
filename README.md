@@ -19,22 +19,51 @@ You can check the current implementation status here: [Implementation Status](Ro
 ### Example Usage
 
 ```csharp
+using TwitcheryNet.Models.Helix.Channels;
 using TwitcheryNet.Services.Implementations;
 
-var myClientId = "your-client-id";
-var myRedirectUri = "http://localhost:8080";
-var myScopes = new string[] { "chat:read", "chat:edit", "channel:moderate" };
+const string myClientId = "your-client-id"; // Get this from your Twitch application
+const string myRedirectUri = "http://localhost:8181"; // Must match the one in your Twitch application
+var myScopes = new[]
+{
+    "chat:read",
+    "chat:edit",
+    "user:read:chat",
+    "channel:moderate",
+    "channel:read:subscriptions",
+    "moderator:read:followers"
+};
 
-var twitchery = new Twitchery { ClientId = myClientId };
+// Create a new Twitchery instance
+var twitchery = new Twitchery();
 
 // Authenticate with the user's default browser (Windows, Linux and OSX supported)
-await twitchery.UserBrowserAuthAsync(redirectUri, scopes);
+// If none is available, a URL will be printed to the console
+await twitchery.UserBrowserAuthAsync(myClientId, myRedirectUri, myScopes);
 
 // Print the user's display name
 Console.WriteLine("Logged in as: " + twitchery.Me!.DisplayName);
 
+// Get the authenticated user's channel
+var myChannel = twitchery.Me.Channel;
+
 // How many followers do I have?
-Console.WriteLine("I have {0} followers", twitchery.ChannelFollowers[twitchery.Me!.Id].Count);
+// This will fetch all followers, so it may take a while if you have a lot
+// In a future version, you'll be able to access the total amount and the recent followers more easy
+var followerCount = 0;
+Follower lastFollower = null;
+await foreach (var follower in myChannel.Followers)
+{
+    // The first follower in the list is the most recent one
+    if (lastFollower is null)
+    {
+        lastFollower = follower;
+    }
+    
+    followerCount++;
+}
+
+Console.WriteLine("I have {0} followers", followerCount);
 
 // Am I streaming right now?
 var myStream = twitchery.Streams[twitchery.Me!.Login];
@@ -48,8 +77,32 @@ else
 }
 
 // Who was the last person to follow me?
-var lastFollower = twitchery.ChannelFollowers[twitchery.Me!.Id].First(); // First, because the list is sorted by follow date
 Console.WriteLine("My last follower was {0}, who followed on {1}!", lastFollower.UserName, lastFollower.FollowedAt);
+
+// Listen for events
+myChannel.ChatMessage += (sender, e) =>
+{
+    Console.WriteLine("{0} said: {1}", e.ChatterUserName, e.Message.Text);
+    return Task.CompletedTask;
+};
+
+myChannel.Follow += (sender, e) =>
+{
+    Console.WriteLine("{0} followed me!", e.UserName);
+    return Task.CompletedTask;
+};
+
+myChannel.Subscribe += (sender, e) =>
+{
+    Console.WriteLine("{0} subscribed to me!", e.UserName);
+    return Task.CompletedTask;
+};
+
+Console.WriteLine("Press any key to exit...");
+
+// This is required to keep the bot running until the user presses a key
+// To keep the bot running indefinitely, you can use `await Task.Delay(-1);`
+await Task.Run(Console.ReadKey);
 
 // Yes, it's that simple!
 ```
