@@ -1,4 +1,9 @@
+using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
 using Newtonsoft.Json;
+using TwitcheryNet.Extensions;
+using TwitcheryNet.Net.EventSub.EventArgs;
 
 namespace TwitcheryNet.Models.Helix.EventSub.Subscriptions;
 
@@ -19,5 +24,18 @@ public class EventSubCondition
         BroadcasterUserId = broadcasterUserId;
         ModeratorUserId = moderatorUserId;
         UserId = userId;
+    }
+
+    public string ToSha256(params string[] prefixes)
+    {
+        if (BroadcasterUserId.IsNullOrWhiteSpace() && ModeratorUserId.IsNullOrWhiteSpace() && UserId.IsNullOrWhiteSpace())
+        {
+            throw new InvalidOperationException("At least one of the following properties must be set: BroadcasterUserId, ModeratorUserId, UserId");
+        }
+        
+        var prefix = string.Join("", prefixes);
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"{prefix}{BroadcasterUserId}{ModeratorUserId}{UserId}"));
+
+        return string.Join("", hash.Select(b => b.ToString("x2")));
     }
 }

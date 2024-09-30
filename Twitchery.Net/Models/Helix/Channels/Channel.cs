@@ -78,21 +78,21 @@ public class Channel : IHasTwitchery, IConditional
     [EventSub("channel.chat.message", "1", "chat:read")]
     public event AsyncEventHandler<ChannelChatMessageNotification>? ChatMessage
     {
-        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(ChatMessage), value ?? throw new ArgumentNullException(nameof(value))).Wait();
-        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(ChatMessage), value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(ChatMessage), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(ChatMessage), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
     }
     
     [EventSub("channel.follow", "2", "moderator:read:followers")]
     public event AsyncEventHandler<ChannelFollowNotification>? Follow
     {
-        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(Follow), value ?? throw new ArgumentNullException(nameof(value))).Wait();
-        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(Follow), value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(Follow), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(Follow), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
     }
     
     [EventSub("channel.subscribe", "1", "channel:read:subscriptions")]
     public event AsyncEventHandler<ChannelSubscribeNotification>? Subscribe
     {
-        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(Subscribe), value ?? throw new ArgumentNullException(nameof(value))).Wait();
-        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(Subscribe), value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(Subscribe), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(Subscribe), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
     }
 }

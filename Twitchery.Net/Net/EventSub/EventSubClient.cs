@@ -10,7 +10,6 @@ using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Client;
 using TwitcheryNet.Models.Client.Messages.Welcome;
 using TwitcheryNet.Models.Helix.EventSub.Subscriptions;
-using TwitcheryNet.Net.EventSub.EventArgs;
 using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Net.EventSub;
@@ -21,7 +20,7 @@ public class EventSubClient
     private ITwitchery Twitch { get; }
     private WebsocketClient Client { get; }
     private Dictionary<string, Func<EventSubClient, string, Task>> Handlers { get; } = new();
-    private Dictionary<string, Delegate> Listener { get; } = new();
+    private Dictionary<string, List<Delegate>> Listener { get; } = new();
     
     private string SessionId { get; set; } = string.Empty;
     
@@ -239,28 +238,40 @@ public class EventSubClient
 
         var subId = data.Payload.Subscription.Id;
         var subType = data.Payload.Subscription.Type;
-        var currentListener = Listener.GetValueOrDefault(subId);
-
-        if (currentListener is null)
+        var currentListeners = Listener.GetValueOrDefault(subId);
+        
+        if (currentListeners is null)
         {
             Logger.LogWarning("No listener found for {SubscriptionType} with Id {SubscriptionId}", subType, subId);
             return;
         }
 
-        if (currentListener.Target is null)
+        foreach (var currentListener in currentListeners)
         {
-            Logger.LogWarning("Listener target is null for {SubscriptionType} with Id {SubscriptionId}", subType, subId);
-            return;
+            if (currentListener.Target is null)
+            {
+                Logger.LogWarning("Listener target is null for {SubscriptionType} with Id {SubscriptionId}", subType,
+                    subId);
+                return;
+            }
+            
+            if (currentListener.Target is not IConditional conditional)
+            {
+                Logger.LogWarning("Listener target is not IConditional for {SubscriptionType} with Id {SubscriptionId}", subType,
+                    subId);
+                return;
+            }
+
+            // TODO: Identifier is missing at this point to re-subscribe the event
+            //await SubscribeAsync(conditional, data.Metadata.SubscriptionType, data.Metadata.SubscriptionVersion, currentListener);
         }
-        
-        await SubscribeAsync(currentListener.Target, data.Metadata.SubscriptionType, data.Metadata.SubscriptionVersion, currentListener);
-        
+
         Logger.LogInformation("Re-registered listener for {SubscriptionType} with Id {SubscriptionId}", subType, subId);
         
         Listener.Remove(subId);
     }
     
-    public async Task RegisterEventSubAsync(object source, string eventName, Delegate handler)
+    public async Task RegisterEventSubAsync(IConditional source, string eventName, string identifier, Delegate handler)
     {
         ArgumentNullException.ThrowIfNull(source, nameof(source));
         ArgumentException.ThrowIfNullOrEmpty(eventName, nameof(eventName));
@@ -284,11 +295,21 @@ public class EventSubClient
         
         var eventType = eventSub.EventSubType;
         var eventVersion = eventSub.EventSubVersion;
+        var eventPath = $"{eventType}/{identifier}";
         
-        await SubscribeAsync(source, eventType, eventVersion, handler);
+        Logger.LogDebug("Registering event {EventKey}[v{Version}] (Event Path: {EventPath})", eventType, eventVersion, eventPath);
+        
+        if (Listener.TryGetValue(eventPath, out var listeners))
+        {
+            Logger.LogDebug("Adding listener to existing event {EventKey}[v{Version}] (Event Path: {EventPath})", eventType, eventVersion, eventPath);
+            listeners.Add(handler);
+            return;
+        }
+        
+        await SubscribeAsync(source, eventType, eventVersion, identifier, handler);
     }
-
-    public async Task UnregisterEventSubAsync(object source, string eventName, Delegate handler)
+ 
+    public async Task UnregisterEventSubAsync(object source, string eventName, string identifier, Delegate handler)
     {
         ArgumentNullException.ThrowIfNull(source, nameof(source));
         ArgumentException.ThrowIfNullOrEmpty(eventName, nameof(eventName));
@@ -318,28 +339,8 @@ public class EventSubClient
     
     [RequiresToken(TokenType.UserAccess)]
     [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]
-    public async Task SubscribeAsync(object source, string eventType, string eventVersion, Delegate eventHandler)
+    public async Task SubscribeAsync(IConditional source, string eventType, string eventVersion, string identifier, Delegate eventHandler)
     {
-        var sourceType = source.GetType();
-        
-        if (typeof(IConditional).IsAssignableFrom(sourceType) is false)
-        {
-            Logger.LogError("Source object does not implement IConditional");
-            return;
-        }
-        
-        if (sourceType.IsInterface || sourceType.IsAbstract)
-        {
-            Logger.LogError("Source object cannot be an interface or abstract class");
-            return;
-        }
-
-        if (source is not IConditional conditionalSource)
-        {
-            Logger.LogError("Failed to cast source object to IConditional");
-            return;
-        }
-        
         if (Client.IsConnected is false)
         {
             await StartAsync();
@@ -348,14 +349,17 @@ public class EventSubClient
         ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
         ArgumentException.ThrowIfNullOrWhiteSpace(eventVersion);
 
+        var condition = source.ToCondition();
         var request = new CreateEventSubSubscriptionRequestBody(eventType, eventVersion)
         {
-            Condition = conditionalSource.ToCondition(),
+            Condition = condition,
             Transport =
             {
                 SessionId = await WaitForSessionIdAsync(TaskUtils.TimeoutToken())
             }
         };
+
+        Logger.LogDebug("Subscribing to {EventKey}[v{Version}]", eventType, eventVersion);
 
         var response = await Twitch.PostTwitchApiAsync<CreateEventSubSubscriptionRequestBody, CreateEventSubSubscriptionResponseBody>(
             request, typeof(EventSubClient));
@@ -367,17 +371,11 @@ public class EventSubClient
         }
         
         var resData = response.Data[0];
+        var eventPath = $"{eventType}/{identifier}";
         
-        Listener.Add(resData.Id, eventHandler);
+        Listener.Add(eventPath, [ eventHandler ]);
         
-        Logger.LogInformation("Registered for event {Key}[v{Version}]: {Status}", eventType, eventVersion, response.Data[0].Status);
-    }
-
-    [RequiresToken(TokenType.UserAccess)]
-    [ApiRoute("POST", "eventsub/subscriptions", "channel:read:subscriptions", RequiredStatusCode = HttpStatusCode.Accepted)]
-    public async Task SubscribeAsync<T>(T source, string eventType, string eventVersion, Delegate eventHandler) where T : class, IConditional
-    {
-        await SubscribeAsync((object)source, eventType, eventVersion, eventHandler);
+        Logger.LogInformation("Registered new listener for event {Key}[v{Version}]: {Status} (Event Path: {EventPath})", eventType, eventVersion, response.Data[0].Status, eventPath);
     }
 
     private async Task<string> WaitForSessionIdAsync(CancellationToken token = default)
@@ -390,41 +388,46 @@ public class EventSubClient
         return SessionId;
     }
 
-    public async Task RaiseEventAsync<T>(string subscriptionType, EventSubNotificationData<T> data)
+    public async Task RaiseEventAsync<T>(string eventPath, EventSubNotificationData<T> data)
         where T : class, new()
     {
-        var subId = data.Payload.Subscription.Id;
-        
-        if (Listener.TryGetValue(subId, out var listener))
+        if (Listener.TryGetValue(eventPath, out var listeners))
         {
-            try
+            data.Payload.Event.InjectTwitchery(Twitch);
+            
+            foreach (var listener in listeners)
             {
-                data.Payload.Event.InjectTwitchery(Twitch);
-                
-                if (listener.Method.ReturnType == typeof(Task))
+                try
                 {
-                    Logger.LogDebug("Invoking async listener delegate method {Delegate} for {SubscriptionType}", listener.Method, subscriptionType);
-                    if (listener.Method.Invoke(listener.Target, [ listener.Target, data.Payload.Event ]) is Task awaitableListenerHandler)
+                    if (listener.Method.ReturnType == typeof(Task))
                     {
-                        await awaitableListenerHandler;
+                        Logger.LogDebug("Invoking async listener delegate method {Delegate} for event path {EventPath}", listener.Method, eventPath);
+                        if (listener.Method.Invoke(listener.Target, [ listener.Target, data.Payload.Event ]) is Task awaitableListenerHandler)
+                        {
+                            await awaitableListenerHandler;
+                        }
+                        else
+                        {
+                            Logger.LogError("Cannot invoke async listener, because the return value is " +
+                                            "expected to of type Task for Delegate method {Delegate} for event path" +
+                                            "{EventPath}", listener.Method, eventPath);
+                        }
                     }
                     else
                     {
-                        Logger.LogError("Cannot invoke async listener, because the return value is " +
-                                        "expected to of type Task for Delegate method {Delegate} for " +
-                                        "{SubscriptionType}", listener.Method, subscriptionType);
+                        Logger.LogDebug("Invoking listener delegate method {Delegate} for event path {EventPath}", listener.Method, eventPath);
+                        listener.Method.Invoke(listener.Target, [ listener.Target, data.Payload.Event ]);
                     }
                 }
-                else
+                catch (Exception e)
                 {
-                    Logger.LogDebug("Invoking listener delegate method {Delegate} for {SubscriptionType}", listener.Method, subscriptionType);
-                    listener.Method.Invoke(listener.Target, [ listener.Target, data.Payload.Event ]);
+                    Logger.LogError(e, "Failed to invoke listener delegate method {Delegate} for event path {EventPath}", listener.Method, eventPath);
                 }
             }
-            catch (Exception e)
-            {
-                Logger.LogError(e, "Failed to invoke listener delegate method {Delegate} for {SubscriptionType}", listener.Method, subscriptionType);
-            }
+        }
+        else
+        {
+            Logger.LogWarning("No listener found for event path {EventPath}", eventPath);
         }
     }
 }

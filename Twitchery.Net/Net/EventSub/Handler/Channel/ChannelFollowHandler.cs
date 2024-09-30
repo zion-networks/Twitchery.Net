@@ -26,7 +26,9 @@ public class ChannelFollowHandler : INotification
                     $"Failed to deserialize JSON for {nameof(ChannelFollowNotification)}");
             }
 
-            await client.RaiseEventAsync(SubscriptionType, data);
+            var eventPath = $"{SubscriptionType}/{data.Payload.Event.BroadcasterUserId}";
+            
+            await client.RaiseEventAsync(eventPath, data);
         }
         catch
         {
