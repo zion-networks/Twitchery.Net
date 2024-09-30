@@ -27,7 +27,9 @@ public class ChatMessageHandler : INotification
                     $"Failed to deserialize JSON for {nameof(ChannelChatMessageNotification)}");
             }
 
-            await client.RaiseEventAsync(SubscriptionType, data);
+            var eventPath = $"{SubscriptionType}/{data.Payload.Event.BroadcasterUserId}";
+            
+            await client.RaiseEventAsync(eventPath, data);
         }
         catch
         {

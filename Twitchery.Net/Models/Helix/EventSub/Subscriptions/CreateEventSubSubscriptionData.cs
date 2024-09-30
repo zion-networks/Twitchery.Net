@@ -28,4 +28,9 @@ public class CreateEventSubSubscriptionData
     
     [JsonProperty("cost")]
     public int Cost { get; set; }
+    
+    public string ToSha256()
+    {
+        return Condition.ToSha256(Type, Version);
+    }
 }

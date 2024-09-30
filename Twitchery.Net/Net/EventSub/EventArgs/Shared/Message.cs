@@ -13,4 +13,9 @@ public class Message
     
     [JsonProperty("fragments")]
     public List<Fragment> Fragments { get; set; } = [];
+
+    public override string ToString()
+    {
+        return Text;
+    }
 }

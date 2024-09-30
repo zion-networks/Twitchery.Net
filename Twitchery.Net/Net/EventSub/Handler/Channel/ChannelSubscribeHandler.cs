@@ -26,8 +26,10 @@ public class ChannelSubscribeHandler : INotification
                 throw new JsonSerializationException(
                     $"Failed to deserialize JSON for {nameof(ChannelSubscribeNotification)}");
             }
+            
+            var eventPath = $"{SubscriptionType}/{data.Payload.Event.BroadcasterUserId}";
 
-            await client.RaiseEventAsync(SubscriptionType, data);
+            await client.RaiseEventAsync(eventPath, data);
         }
         catch
         {
