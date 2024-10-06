@@ -9,10 +9,19 @@ public static class MemberInfoExtensions
         return m.GetCustomAttribute<T>() != null;
     }
 
-    public static bool TryGetCustomAttribute<T>(this MemberInfo m, out T? attribute) where T : Attribute
+    public static bool TryGetCustomAttribute<T>(this MemberInfo m, out T attribute) where T : Attribute
     {
-        attribute = m.GetCustomAttribute<T>();
+        var a = m.GetCustomAttribute<T>();
+        
+        if (a != null)
+        {
+            attribute = a;
+        }
+        else
+        {
+            attribute = null!;
+        }
 
-        return attribute is not null;
+        return a is not null;
     }
 }

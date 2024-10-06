@@ -1,11 +1,11 @@
 using System.ComponentModel.DataAnnotations;
-using System.Net;
 using System.Net.Mime;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TwitcheryNet.Attributes;
+using TwitcheryNet.Caching;
 using TwitcheryNet.Exceptions;
 using TwitcheryNet.Extensions;
 using TwitcheryNet.Http;
@@ -21,8 +21,14 @@ using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Services.Implementations;
 
-public class Twitchery : ITwitchery
+public class Twitchery : ITwitchery, IAsyncDisposable
 {
+    #region Private Properties
+    
+    private string? UserLogin { get; set; }
+    
+    #endregion Private Properties
+    
     #region Public Properties
 
     public string? UserClientId { get; set; }
@@ -39,6 +45,7 @@ public class Twitchery : ITwitchery
     #region Internal Properties
 
     EventSubClient ITwitchery.EventSubClient { get; set; }
+    SmartCachePool ITwitchery.SmartCachePool { get; set; }
 
     #endregion Internal Properties
 
@@ -68,7 +75,7 @@ public class Twitchery : ITwitchery
 
     #region Shorthand Properties
 
-    public User? Me { get; private set; }
+    public User? Me => string.IsNullOrEmpty(UserLogin) ? null : Users[UserLogin]?.Value;
     
     public bool HasUserToken => !string.IsNullOrWhiteSpace(UserAccessToken);
     public bool HasAppToken => !string.IsNullOrWhiteSpace(AppAccessToken);
@@ -84,6 +91,7 @@ public class Twitchery : ITwitchery
         }).CreateLogger<Twitchery>();
         
         ((ITwitchery)this).EventSubClient = new(this);
+        ((ITwitchery)this).SmartCachePool = new(this);
     }
 
     [ActivatorUtilitiesConstructor]
@@ -92,6 +100,7 @@ public class Twitchery : ITwitchery
         Logger = logger;
         
         ((ITwitchery)this).EventSubClient = new(this);
+        ((ITwitchery)this).SmartCachePool = new(this);
     }
     
     public string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null)
@@ -147,7 +156,13 @@ public class Twitchery : ITwitchery
             .ToList();
 
         var me = await Users.GetUsersAsync(new GetUsersRequest(), timeOutCancellation.Token);
-        Me = me?.Users.FirstOrDefault();
+        UserLogin = me?.Users.FirstOrDefault()?.Login;
+
+        if (string.IsNullOrWhiteSpace(UserLogin))
+        {
+            Logger.LogError("Failed to retrieve user login.");
+            return false;
+        }
         
         return true;
     }
@@ -698,5 +713,10 @@ public class Twitchery : ITwitchery
                 prop.SetValue(target, rawResult);
             }
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await ((ITwitchery)this).SmartCachePool.DisposeAsync();
     }
 }

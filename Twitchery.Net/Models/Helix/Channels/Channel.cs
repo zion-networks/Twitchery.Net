@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TwitcheryNet.Attributes;
+using TwitcheryNet.Caching;
+using TwitcheryNet.Caching.Attributes;
 using TwitcheryNet.Events;
+using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Helix.EventSub.Subscriptions;
 using TwitcheryNet.Models.Indexer;
 using TwitcheryNet.Net.EventSub;
@@ -12,15 +15,19 @@ using TwitcheryNet.Services.Interfaces;
 namespace TwitcheryNet.Models.Helix.Channels;
 
 [JsonObject]
-public class Channel : IHasTwitchery, IConditional
+[Caching(Seconds.Minute)]
+public class Channel : IHasTwitchery, IConditional, ICachable
 {
+    [NoCaching]
     public ITwitchery? Twitch { get; set; }
 
+    [NoCaching]
     private ILogger<Channel> Logger { get; } = LoggerFactory
         .Create(x => x.AddConsole())
         .CreateLogger<Channel>();
     
     [JsonProperty("broadcaster_id")]
+    [CachingKey]
     public string BroadcasterId { get; set; } = string.Empty;
     
     [JsonProperty("broadcaster_login")]
@@ -42,6 +49,7 @@ public class Channel : IHasTwitchery, IConditional
     public string Title { get; set; } = string.Empty;
     
     [JsonProperty("delay")]
+    [NoCaching]
     public uint Delay { get; set; }
     
     [JsonProperty("tags")]
@@ -54,16 +62,19 @@ public class Channel : IHasTwitchery, IConditional
     public bool IsBrandedContent { get; set; }
     
     [JsonIgnore]
+    [CacheRetain]
     [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.IsOwnerAsync))]
     public bool IsOwner { get; set; }
     
     [JsonIgnore]
+    [CacheRetain]
     [InjectRouteData(typeof(ModerationIndex), nameof(ModerationIndex.IsModeratorAsync))]
     public bool IsModerator { get; set; }
-    
+
     [JsonIgnore]
-    [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.GetChannelFollowersAsync))]
-    public IAsyncEnumerable<Follower>? Followers { get; set; }
+    [CacheRetain]
+    [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.GetAllChannelFollowersAsync))]
+    public List<Follower> Followers { get; set; } = [];
 
     public EventSubCondition ToCondition()
     {
@@ -95,4 +106,6 @@ public class Channel : IHasTwitchery, IConditional
         add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(Subscribe), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
         remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(Subscribe), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
     }
+
+    public string GetCacheKey() => BroadcasterId;
 }
