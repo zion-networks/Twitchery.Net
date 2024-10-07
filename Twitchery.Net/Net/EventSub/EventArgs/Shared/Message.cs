@@ -18,4 +18,6 @@ public class Message
     {
         return Text;
     }
+    
+    public static implicit operator string(Message message) => message.Text;
 }

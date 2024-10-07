@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TwitcheryNet.Attributes;
+using TwitcheryNet.Caching;
 using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Services.Interfaces;
 
@@ -9,15 +10,16 @@ public sealed class UsersIndex
 {
     private ITwitchery Twitch { get; }
     
+    private SmartCache<User> UsersCache { get; }
+    
     [ActivatorUtilitiesConstructor]
     public UsersIndex(ITwitchery api)
     {
         Twitch = api;
+        UsersCache = Twitch.SmartCachePool.GetOrCreateCache(GetUserByLoginAsync);
     }
     
-    public User? this[string login] => GetUserByLoginAsync(login).Result;
-
-    public User? this[uint id] => GetUserByIdAsync(id).Result;
+    public CachedValue<User>? this[string login] => UsersCache[login];
     
     [ApiRoute("GET", "users")]
     [RequiresToken(TokenType.Both)]
@@ -38,12 +40,12 @@ public sealed class UsersIndex
         return users;
     }
     
-    public async Task<User?> GetUserByLoginAsync(string login, CancellationToken cancellationToken = default)
+    public async Task<User?> GetUserByLoginAsync(string login, bool noInject, CancellationToken cancellationToken = default)
     {
         var users = await GetUsersAsync(new GetUsersRequest { Logins = [ login ] }, cancellationToken);
         var user = users?.Users.FirstOrDefault();
         
-        if (user is not null)
+        if (noInject is not false && user is not null)
         {
             await Twitch.InjectDataAsync(user, cancellationToken);
         }

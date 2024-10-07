@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using TwitcheryNet.Attributes;
+using TwitcheryNet.Caching;
 using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Channels;
 using TwitcheryNet.Models.Helix.Moderation;
@@ -14,13 +15,16 @@ public class ChannelsIndex
 {
     private ITwitchery Twitch { get; }
     
+    private SmartCache<Channel> ChannelsCache { get; }
+    
     [ActivatorUtilitiesConstructor]
     public ChannelsIndex(ITwitchery api)
     {
         Twitch = api;
+        ChannelsCache = Twitch.SmartCachePool.GetOrCreateCache(GetChannelInformationAsync);
     }
-    
-    public Channel? this[string broadcasterId] => GetChannelInformationAsync(broadcasterId).Result;
+
+    public CachedValue<Channel>? this[string broadcasterId] => ChannelsCache[broadcasterId];
     
     [ApiRoute("GET", "channels")]
     [RequiresToken(TokenType.Both)]
@@ -29,12 +33,12 @@ public class ChannelsIndex
         return await Twitch.GetTwitchApiAsync<GetChannelRequest, GetChannelResponse>(request, typeof(ChannelsIndex), cancellationToken);
     }
     
-    public async Task<Channel?> GetChannelInformationAsync(string broadcasterId, CancellationToken cancellationToken = default)
+    public async Task<Channel?> GetChannelInformationAsync(string broadcasterId, bool noInject = false, CancellationToken cancellationToken = default)
     {
         var channels = await GetChannelInformationAsync(new GetChannelRequest(broadcasterId), cancellationToken);
         var channel = channels?.ChannelInformations.FirstOrDefault();
 
-        if (channel is not null)
+        if (noInject is false && channel is not null)
         {
             await Twitch.InjectDataAsync(channel, cancellationToken);
         }
@@ -42,17 +46,9 @@ public class ChannelsIndex
         return channel;
     }
     
-    public async Task<Channel?> GetChannelInformationAsync(User user, CancellationToken cancellationToken = default)
+    public Task<Channel?> GetChannelInformationAsync(User user, CancellationToken cancellationToken = default)
     {
-        var channels = await GetChannelInformationAsync(new GetChannelRequest(user.Id), cancellationToken);
-        var channel = channels?.ChannelInformations.FirstOrDefault();
-
-        if (channel is not null)
-        {
-            await Twitch.InjectDataAsync(channel, cancellationToken);
-        }
-
-        return channel;
+        return Task.FromResult(this[user.Id]?.Value);
     }
     
     [ApiRules(RouteRules.RequiresOwner | RouteRules.RequiresModerator)]
@@ -74,7 +70,15 @@ public class ChannelsIndex
     public async Task<List<Follower>> GetChannelFollowersAsync(string broadcasterId, CancellationToken cancellationToken = default)
     {
         var followers = await GetChannelFollowersAsync(new GetChannelFollowersRequest(broadcasterId), cancellationToken);
+        
         return followers?.Followers ?? [];
+    }
+    
+    public async Task<List<Follower>> GetAllChannelFollowersAsync(Channel channel, CancellationToken cancellationToken = default)
+    {
+        var followers = await GetAllChannelFollowersAsync(channel.BroadcasterId, cancellationToken);
+
+        return followers;
     }
     
     public async IAsyncEnumerable<Follower> GetChannelFollowersAsync(Channel channel, [EnumeratorCancellation] CancellationToken cancellationToken = default)

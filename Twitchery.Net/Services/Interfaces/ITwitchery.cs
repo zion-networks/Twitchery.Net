@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using TwitcheryNet.Caching;
 using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Models.Indexer;
@@ -18,11 +19,13 @@ public interface ITwitchery
     public List<string> AppClientScopes { get; set; }
     
     internal EventSubClient EventSubClient { get; set; }
+    internal SmartCachePool SmartCachePool { get; set; }
     
     public UsersIndex Users { get; }
     public StreamsIndex Streams { get; }
     public ChannelsIndex Channels { get; }
     public ChatIndex Chat { get; }
+    ModerationIndex Moderation { get; }
     public User? Me { get; }
     bool HasUserToken { get; }
     bool HasAppToken { get; }

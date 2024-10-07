@@ -1,15 +1,21 @@
 using Newtonsoft.Json;
-using TwitcheryNet.Attributes;
+using TwitcheryNet.Caching;
+using TwitcheryNet.Caching.Attributes;
 using TwitcheryNet.Json.Converter;
+using TwitcheryNet.Misc;
 using TwitcheryNet.Models.Helix.Channels;
-using TwitcheryNet.Models.Indexer;
+using TwitcheryNet.Services.Interfaces;
 
 namespace TwitcheryNet.Models.Helix.Users;
 
 [JsonObject]
-public class User
+[Caching(Seconds.Minutes30)]
+public class User : ICachable, IHasTwitchery
 {
+    ITwitchery? IHasTwitchery.Twitch { get; set; }
+    
     [JsonProperty("id")]
+    [CachingKey]
     public string Id { get; set; } = string.Empty;
     
     [JsonProperty("login")]
@@ -43,8 +49,9 @@ public class User
     
     [JsonProperty("created_at")]
     public DateTime CreatedAt { get; set; }
-    
+
     [JsonIgnore]
-    [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.GetChannelInformationAsync))]
-    public Channel? Channel { get; set; }
+    public Channel? Channel => ((IHasTwitchery)this).Twitch?.Channels[Id]?.Value;
+    
+    public string GetCacheKey() => Id;
 }
