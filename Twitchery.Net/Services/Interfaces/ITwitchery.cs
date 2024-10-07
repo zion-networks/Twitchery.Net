@@ -27,6 +27,7 @@ public interface ITwitchery
     bool HasUserToken { get; }
     bool HasAppToken { get; }
     bool HasAnyToken { get; }
+    PollsIndex Polls { get; }
 
     string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null);
     Task<bool> UserBrowserAuthAsync(string clientId, string redirectUri, string[] scopes);

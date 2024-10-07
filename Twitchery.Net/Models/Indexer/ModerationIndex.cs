@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TwitcheryNet.Attributes;
+using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Channels;
 using TwitcheryNet.Models.Helix.Moderation;
 using TwitcheryNet.Services.Interfaces;
@@ -74,5 +75,33 @@ public class ModerationIndex
         var channels = await GetAllModeratedChannelsAsync(userId, token);
         
         return channels.Any(x => x.BroadcasterId == channel.BroadcasterId);
+    }
+    
+    [ApiRoute("GET", "moderation/moderators", "moderation:read", AlternativeScopes = [ "channel:manage:moderators" ])]
+    [ApiRules(RouteRules.RequiresOwner)]
+    [RequiresToken(TokenType.UserAccess)]
+    public async Task<GetModeratorsResponse?> GetModeratorsAsync(GetModeratorsRequest request, CancellationToken cancellationToken = default)
+    {
+        return await Twitch.GetTwitchApiAsync<GetModeratorsRequest, GetModeratorsResponse>(request, typeof(ModerationIndex), cancellationToken);
+    }
+    
+    [ApiRoute("GET", "moderation/moderators", "moderation:read", AlternativeScopes = [ "channel:manage:moderators" ])]
+    [ApiRules(RouteRules.RequiresOwner)]
+    [RequiresToken(TokenType.UserAccess)]
+    public async Task<GetAllModeratorsResponse> GetAllModeratorsAsync(GetModeratorsRequest request, CancellationToken cancellationToken = default)
+    {
+        return await Twitch.GetTwitchApiAllAsync<GetModeratorsRequest, GetModeratorsResponse, GetAllModeratorsResponse>(request, typeof(ModerationIndex), cancellationToken);
+    }
+    
+    public async Task<List<UserBase>> GetAllModeratorsAsync(string broadcasterId, CancellationToken cancellationToken = default)
+    {
+        var moderators = await GetAllModeratorsAsync(new GetModeratorsRequest(broadcasterId), cancellationToken);
+        return moderators.Moderators;
+    }
+    
+    public async Task<List<UserBase>> GetAllModeratorsAsync(Channel channel, CancellationToken cancellationToken = default)
+    {
+        var moderators = await GetAllModeratorsAsync(new GetModeratorsRequest(channel.BroadcasterId), cancellationToken);
+        return moderators.Moderators;
     }
 }
