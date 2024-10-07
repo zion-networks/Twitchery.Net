@@ -15,11 +15,11 @@ using TwitcheryNet.Services.Interfaces;
 namespace TwitcheryNet.Models.Helix.Channels;
 
 [JsonObject]
-[Caching(Seconds.Minute)]
+[Caching(Seconds.Minutes5)]
 public class Channel : IHasTwitchery, IConditional, ICachable
 {
     [NoCaching]
-    public ITwitchery? Twitch { get; set; }
+    ITwitchery? IHasTwitchery.Twitch { get; set; }
 
     [NoCaching]
     private ILogger<Channel> Logger { get; } = LoggerFactory
@@ -62,26 +62,29 @@ public class Channel : IHasTwitchery, IConditional, ICachable
     public bool IsBrandedContent { get; set; }
     
     [JsonIgnore]
-    [CacheRetain]
-    [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.IsOwnerAsync))]
-    public bool IsOwner { get; set; }
-    
-    [JsonIgnore]
-    [CacheRetain]
-    [InjectRouteData(typeof(ModerationIndex), nameof(ModerationIndex.IsModeratorAsync))]
-    public bool IsModerator { get; set; }
+    public bool IsOwner => ((IHasTwitchery)this).Twitch?.Channels.IsOwnerAsync(this).Result ?? false;
 
+    [JsonIgnore]
+    public bool IsModerator => ((IHasTwitchery)this).Twitch?.Moderation.IsModeratorAsync(this).Result ?? false;
+
+    // TODO: Should be cached as: BroadcasterId => List<Follower> with a lifespan of less or equal to 5 minutes
     [JsonIgnore]
     [CacheRetain]
     [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.GetAllChannelFollowersAsync))]
     public List<Follower> Followers { get; set; } = [];
 
+    // TODO: Should be cached as: BroadcasterId => List<Chatter> with a lifespan of less or equal to 5 minutes
+    [JsonIgnore]
+    [CacheRetain]
+    [InjectRouteData(typeof(ChatIndex), nameof(ChatIndex.GetAllChattersAsync))]
+    public List<UserBase> Chatters { get; set; } = [];
+
     public EventSubCondition ToCondition()
     {
         return new EventSubCondition
         {
-            UserId = Twitch?.Me?.Id,
-            ModeratorUserId = Twitch?.Me?.Id,
+            UserId = ((IHasTwitchery)this).Twitch?.Me?.Id,
+            ModeratorUserId = ((IHasTwitchery)this).Twitch?.Me?.Id,
             BroadcasterUserId = BroadcasterId
         };
     }
@@ -89,22 +92,22 @@ public class Channel : IHasTwitchery, IConditional, ICachable
     [EventSub("channel.chat.message", "1", "chat:read")]
     public event AsyncEventHandler<ChannelChatMessageNotification>? ChatMessage
     {
-        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(ChatMessage), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
-        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(ChatMessage), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        add => ((IHasTwitchery)this).Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(ChatMessage), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        remove => ((IHasTwitchery)this).Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(ChatMessage), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
     }
     
     [EventSub("channel.follow", "2", "moderator:read:followers")]
     public event AsyncEventHandler<ChannelFollowNotification>? Follow
     {
-        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(Follow), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
-        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(Follow), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        add => ((IHasTwitchery)this).Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(Follow), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        remove => ((IHasTwitchery)this).Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(Follow), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
     }
     
     [EventSub("channel.subscribe", "1", "channel:read:subscriptions")]
     public event AsyncEventHandler<ChannelSubscribeNotification>? Subscribe
     {
-        add => Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(Subscribe), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
-        remove => Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(Subscribe), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        add => ((IHasTwitchery)this).Twitch?.EventSubClient.RegisterEventSubAsync(this, nameof(Subscribe), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
+        remove => ((IHasTwitchery)this).Twitch?.EventSubClient.UnregisterEventSubAsync(this, nameof(Subscribe), BroadcasterId, value ?? throw new ArgumentNullException(nameof(value))).Wait();
     }
 
     public string GetCacheKey() => BroadcasterId;

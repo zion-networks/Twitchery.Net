@@ -1,5 +1,4 @@
 using System.Reflection;
-using Microsoft.Extensions.Logging;
 using TwitcheryNet.Caching.Attributes;
 using TwitcheryNet.Extensions;
 
@@ -16,10 +15,6 @@ public class CachedValueData<T> : CachedValue<T> where T : class, ICachable
     public long RefreshCount { get; private set; }
     public long Lifespan { get; }
     public bool IsInvalidated { get; set; }
-    
-    private ILogger<CachedValueData<T>> Logger { get; } = LoggerFactory
-        .Create(x => x.AddConsole().SetMinimumLevel(LogLevel.Debug))
-        .CreateLogger<CachedValueData<T>>();
 
     public override T Value
     {
@@ -60,19 +55,15 @@ public class CachedValueData<T> : CachedValue<T> where T : class, ICachable
         {
             Expiration = DateTime.UtcNow.AddSeconds(cachingAttribute.CacheDuration);
             Lifespan = cachingAttribute.CacheDuration;
-            
-            Logger.LogDebug("Cached value for {Type} has been created with a lifespan of {Lifespan} seconds", typeof(T).Name, Lifespan);
         }
         else
         {
             Expiration = expiration ?? DateTime.MaxValue;
             Lifespan = (long)(Expiration - LastAccessed).TotalSeconds;
-            
-            Logger.LogDebug("Cached value for {Type} has been created with a lifespan of {Lifespan} seconds", typeof(T).Name, Lifespan);
         }
     }
 
-    public void Refresh(T fetchedValue)
+    public void Refresh(T fetchedValue) // TODO: Move to extension method
     {
         var tProps = typeof(T).GetProperties();
         foreach (var prop in tProps)

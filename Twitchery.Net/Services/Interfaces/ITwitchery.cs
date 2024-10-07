@@ -25,6 +25,7 @@ public interface ITwitchery
     public StreamsIndex Streams { get; }
     public ChannelsIndex Channels { get; }
     public ChatIndex Chat { get; }
+    ModerationIndex Moderation { get; }
     public User? Me { get; }
     bool HasUserToken { get; }
     bool HasAppToken { get; }

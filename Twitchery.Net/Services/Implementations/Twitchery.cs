@@ -64,12 +64,12 @@ public class Twitchery : ITwitchery, IAsyncDisposable
     
     #region Indexed Properties
 
-    public UsersIndex Users => new(this);
-    public StreamsIndex Streams => new(this);
-    public ChatIndex Chat => new(this);
-    public ChannelsIndex Channels => new(this);
-    public ModerationIndex Moderation => new(this);
-    public PollsIndex Polls => new(this);
+    public UsersIndex Users { get; }
+    public StreamsIndex Streams { get; }
+    public ChatIndex Chat { get; }
+    public ChannelsIndex Channels { get; }
+    public ModerationIndex Moderation { get; }
+    public PollsIndex Polls { get; }
     
     #endregion Indexed Properties
 
@@ -92,6 +92,13 @@ public class Twitchery : ITwitchery, IAsyncDisposable
         
         ((ITwitchery)this).EventSubClient = new(this);
         ((ITwitchery)this).SmartCachePool = new(this);
+        
+        Users = new(this);
+        Streams = new(this);
+        Chat = new(this);
+        Channels = new(this);
+        Moderation = new(this);
+        Polls = new(this);
     }
 
     [ActivatorUtilitiesConstructor]
@@ -101,6 +108,13 @@ public class Twitchery : ITwitchery, IAsyncDisposable
         
         ((ITwitchery)this).EventSubClient = new(this);
         ((ITwitchery)this).SmartCachePool = new(this);
+        
+        Users = new(this);
+        Streams = new(this);
+        Chat = new(this);
+        Channels = new(this);
+        Moderation = new(this);
+        Polls = new(this);
     }
     
     public string GetOAuthUrl(string redirectUri, string[] scopes, string? state = null)
@@ -593,6 +607,7 @@ public class Twitchery : ITwitchery, IAsyncDisposable
 
         if (target is IHasTwitchery twitcheryTarget)
         {
+            Logger.LogDebug("Injecting Twitchery to {TargetType}", type.FullName);
             twitcheryTarget.Twitch = this;
         }
         

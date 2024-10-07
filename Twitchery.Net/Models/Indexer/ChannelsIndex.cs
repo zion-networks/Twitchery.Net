@@ -44,9 +44,9 @@ public class ChannelsIndex
         return channel;
     }
     
-    public Task<CachedValue<Channel>?> GetChannelInformationAsync(User user, CancellationToken cancellationToken = default)
+    public Task<Channel?> GetChannelInformationAsync(User user, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(this[user.Id]);
+        return Task.FromResult(this[user.Id]?.Value);
     }
     
     [ApiRules(RouteRules.RequiresOwner | RouteRules.RequiresModerator)]
@@ -111,11 +111,11 @@ public class ChannelsIndex
     
     public Task<bool> IsOwnerAsync(string broadcasterId, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(Twitch.Me?.CachedChannel?.Value.BroadcasterId == broadcasterId);
+        return Task.FromResult(Twitch.Me?.Channel?.BroadcasterId == broadcasterId);
     }
     
     public Task<bool> IsOwnerAsync(Channel channel, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(Twitch.Me?.CachedChannel?.Value.BroadcasterId == channel.BroadcasterId);
+        return Task.FromResult(Twitch.Me?.Channel?.BroadcasterId == channel.BroadcasterId);
     }
 }

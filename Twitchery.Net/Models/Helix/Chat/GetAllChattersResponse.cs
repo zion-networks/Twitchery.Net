@@ -7,7 +7,7 @@ namespace TwitcheryNet.Models.Helix.Chat;
 public class GetAllChattersResponse : IHasTotal, IFullResponse<GetChattersResponse>, IEnumerable<UserBase>
 {
     [JsonProperty("data")]
-    public List<UserBase> Followers { get; set; } = [];
+    public List<UserBase> Chatters { get; set; } = [];
     
     [JsonProperty("total")]
     public int Total { get; set; }
@@ -16,12 +16,12 @@ public class GetAllChattersResponse : IHasTotal, IFullResponse<GetChattersRespon
     {
         ArgumentNullException.ThrowIfNull(item, nameof(item));
         
-        Followers.AddRange(item.Chatters);
+        Chatters.AddRange(item.Chatters);
     }
 
     public IEnumerator<UserBase> GetEnumerator()
     {
-        return Followers.GetEnumerator();
+        return Chatters.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()

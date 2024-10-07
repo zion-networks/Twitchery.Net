@@ -28,20 +28,24 @@ public class SmartCache<T> : ISmartCache where T : class, ICachable
     
     public async Task<CachedValue<T>?> GetOrFetchAsync(string key, CancellationToken cancellationToken = default)
     {
+        Logger.LogDebug("[SmartCache<{Type}>] Requesting {Key} ...", CacheType.Name, key);
+        
         if (_cache.TryGetValue(key, out var cachedValue))
         {
-            Logger.LogDebug("[SmartCache<{Type}>] Found {Key}", CacheType.Name, key);
+            Logger.LogDebug("[SmartCache<{Type}>] Found already cached {Key}", CacheType.Name, key);
             return cachedValue;
         }
 
-        Logger.LogDebug("[SmartCache<{Type}>] Fetching {Key}", CacheType.Name, key);
+        Logger.LogDebug("[SmartCache<{Type}>] Fetching not cached {Key} ...", CacheType.Name, key);
         
-        var fetchedValue = await _asyncFetcher(key, true, cancellationToken);
+        var fetchedValue = await _asyncFetcher(key, false, cancellationToken);
         if (fetchedValue is not null)
         {
-            Logger.LogDebug("[SmartCache<{Type}>] Fetched {Key}", CacheType.Name, key);
+            var cachedValueData = new CachedValueData<T>(fetchedValue);
             
-            _cache[key] = new CachedValueData<T>(fetchedValue);
+            Logger.LogDebug("[SmartCache<{Type}>] Successfully fetched {Key} (lifetime: {Lifetime}s)", CacheType.Name, key, cachedValueData.Lifespan);
+            
+            _cache[key] = cachedValueData;
             return _cache[key];
         }
         
@@ -84,7 +88,7 @@ public class SmartCache<T> : ISmartCache where T : class, ICachable
             {
                 Logger.LogDebug("[SmartCache<{Type}>] Refreshing {Key}", CacheType.Name, key);
                 
-                var fetchedValue = await _asyncFetcher(key, false);
+                var fetchedValue = await _asyncFetcher(key, true);
                 if (fetchedValue is not null)
                 {
                     cachedValue.Refresh(fetchedValue);

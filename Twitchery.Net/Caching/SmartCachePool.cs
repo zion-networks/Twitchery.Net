@@ -30,17 +30,29 @@ public class SmartCachePool : IAsyncDisposable
         Logger = logger;
     }
     
+    public CachedValue<T>? Get<T>(string key) where T : class, ICachable
+    {
+        var t = typeof(T);
+        
+        if (_cachePool.TryGetValue(t, out var cache))
+        {
+            return ((SmartCache<T>) cache)[key];
+        }
+        
+        return null;
+    }
+    
     public SmartCache<T> GetOrCreateCache<T>(CacheFetchDelegate<T> asyncFetcher) where T : class, ICachable
     {
-        Logger.LogDebug("Getting or creating cache for {Type}...", typeof(T).Name);
-        
         if (_cachePool.TryGetValue(typeof(T), out var cache))
         {
+            Logger.LogDebug("Found existing cache for {Type}...", typeof(T).Name);
             return (SmartCache<T>) cache;
         }
         
-        var smartCache = new SmartCache<T>(asyncFetcher, this);
+        Logger.LogDebug("Creating new cache for {Type}...", typeof(T).Name);
         
+        var smartCache = new SmartCache<T>(asyncFetcher, this);
         _cachePool.Add(typeof(T), smartCache);
         
         return smartCache;
@@ -48,14 +60,10 @@ public class SmartCachePool : IAsyncDisposable
 
     private void ValidateCache(object? state)
     {
-        foreach (var (type, cache) in _cachePool)
+        Logger.LogDebug("Validating and refreshing caches ...");
+        foreach (var (_, cache) in _cachePool)
         {
-            Logger.LogDebug("Validating cache for {Type}...", type.Name);
-
             cache.ValidateAsync().Wait();
-            
-            Logger.LogDebug("Refreshing cache for {Type}...", type.Name);
-            
             cache.RefreshAsync().Wait();
         }
     }
