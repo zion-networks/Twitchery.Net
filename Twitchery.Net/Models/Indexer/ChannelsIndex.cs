@@ -115,4 +115,33 @@ public class ChannelsIndex
     {
         return Task.FromResult(Twitch.Me?.Channel?.BroadcasterId == channel.BroadcasterId);
     }
+    
+    [ApiRules(RouteRules.RequiresOwner)]
+    [ApiRoute("GET", "channels/vips", "channel:read:vips", AlternativeScopes = [ "channel:manage:vips" ])]
+    [RequiresToken(TokenType.UserAccess)]
+    public async Task<GetVipsResponse?> GetVipsAsync(GetVipsRequest request, CancellationToken cancellationToken = default)
+    {
+        return await Twitch.GetTwitchApiAsync<GetVipsRequest, GetVipsResponse>(request, typeof(ChannelsIndex), cancellationToken);
+    }
+    
+    [ApiRules(RouteRules.RequiresOwner)]
+    [ApiRoute("GET", "channels/vips", "channel:read:vips", AlternativeScopes = [ "channel:manage:vips" ])]
+    [RequiresToken(TokenType.UserAccess)]
+    public async Task<GetAllVipsResponse> GetAllVipsAsync(GetVipsRequest request, CancellationToken cancellationToken = default)
+    {
+        return await Twitch.GetTwitchApiAllAsync<GetVipsRequest, GetVipsResponse, GetAllVipsResponse>(request, typeof(ChannelsIndex), cancellationToken);
+    }
+    
+    public async Task<GetAllVipsResponse> GetAllVipsAsync(string broadcasterId, CancellationToken cancellationToken = default)
+    {
+        var request = new GetVipsRequest(broadcasterId);
+        
+        return await Twitch.GetTwitchApiAllAsync<GetVipsRequest, GetVipsResponse, GetAllVipsResponse>(request, typeof(ChannelsIndex), cancellationToken);
+    }
+    
+    public async Task<List<UserBase>> GetAllVipsAsync(Channel channel, CancellationToken cancellationToken = default)
+    {
+        var vips = await GetAllVipsAsync(channel.BroadcasterId, cancellationToken);
+        return vips.Vips;
+    }
 }

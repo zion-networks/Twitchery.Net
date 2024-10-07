@@ -68,6 +68,10 @@ public class Channel : IHasTwitchery, IConditional
     [JsonIgnore]
     [InjectRouteData(typeof(ModerationIndex), nameof(ModerationIndex.GetAllModeratorsAsync))]
     public List<UserBase> Moderators { get; set; } = [];
+    
+    [JsonIgnore]
+    [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.GetAllVipsAsync))]
+    public List<UserBase> Vips { get; set; } = [];
 
     public EventSubCondition ToCondition()
     {
