@@ -8,6 +8,7 @@ public class ApiRoute : Attribute
     public string HttpMethod { get; }
     public string Path { get; }
     public string[] RequiredScopes { get; }
+    public string[] AlternativeScopes { get; set; } = [];
     public HttpStatusCode RequiredStatusCode { get; set; } = HttpStatusCode.OK;
     
     public ApiRoute(string httpMethod, string path, params string[] requiredScopes)

@@ -78,6 +78,16 @@ public class Channel : IHasTwitchery, IConditional, ICachable
     [CacheRetain]
     [InjectRouteData(typeof(ChatIndex), nameof(ChatIndex.GetAllChattersAsync))]
     public List<UserBase> Chatters { get; set; } = [];
+    
+    [JsonIgnore]
+    [CacheRetain]
+    [InjectRouteData(typeof(ModerationIndex), nameof(ModerationIndex.GetAllModeratorsAsync))]
+    public List<UserBase> Moderators { get; set; } = [];
+    
+    [JsonIgnore]
+    [CacheRetain]
+    [InjectRouteData(typeof(ChannelsIndex), nameof(ChannelsIndex.GetAllVipsAsync))]
+    public List<UserBase> Vips { get; set; } = [];
 
     public EventSubCondition ToCondition()
     {
