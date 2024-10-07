@@ -4,6 +4,7 @@ using TwitcheryNet.Attributes;
 using TwitcheryNet.Models.Helix;
 using TwitcheryNet.Models.Helix.Channels;
 using TwitcheryNet.Models.Helix.Moderation;
+using TwitcheryNet.Models.Helix.Polls;
 using TwitcheryNet.Models.Helix.Users;
 using TwitcheryNet.Services.Interfaces;
 
