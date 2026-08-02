@@ -16,8 +16,9 @@ public class Channel : IHasTwitchery, IConditional
 {
     public ITwitchery? Twitch { get; set; }
 
-    private ILogger<Channel> Logger { get; } = LoggerFactory
-        .Create(x => x.AddConsole())
+    private ILogger<Channel>? _logger;
+    private ILogger<Channel> Logger => _logger ??= LoggerFactory
+        .Create(x => x.AddConsole().SetMinimumLevel(Twitch?.LogLevel ?? LogLevel.Warning))
         .CreateLogger<Channel>();
     
     [JsonProperty("broadcaster_id")]
